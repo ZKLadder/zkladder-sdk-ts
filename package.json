@@ -1,6 +1,6 @@
 {
   "name": "@zkladder/zkladder-sdk-ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,6 +40,6 @@
     "ethers": "^5.5.2"
   },
   "publishConfig": {
-    "registry":"https://npm.pkg.github.com"
+    "registry": "https://npm.pkg.github.com"
   }
 }
