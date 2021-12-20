@@ -1,5 +1,5 @@
 {
-  "name": "zkladder-sdk-ts",
+  "name": "@zkladder/zkladder-sdk-ts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -24,5 +24,8 @@
     "eslint-plugin-import": "^2.25.3",
     "jest": "^27.4.3",
     "typescript": "^4.5.2"
+  },
+  "publishConfig": {
+    "@zkladder:registry":"https://npm.pkg.github.com"
   }
 }
