@@ -13,17 +13,19 @@ const parseTransactionData = (txData: any): TransactionData => {
     hash,
     nonce,
     value,
+    wait,
   } = txData;
 
   return {
     chainId,
     confirmations,
     from: isEthereumAddress(from),
-    gasLimit: gasLimit.toNumber(),
-    gasPrice: gasPrice.toNumber(),
+    gasLimit: gasLimit?.toNumber(),
+    gasPrice: gasPrice?.toNumber(),
     txHash: hash,
     nonce,
-    value: value.toNumber(),
+    value: value?.toNumber(),
+    wait,
   };
 };
 
@@ -46,7 +48,7 @@ const parseMinedTransactionData = (txData: any): MinedTransactionData => {
     blockNumber,
     confirmations,
     contractAddress,
-    gasUsed: cumulativeGasUsed.toNumber(),
+    gasUsed: cumulativeGasUsed?.toNumber(),
     from: isEthereumAddress(from),
     to: isEthereumAddress(to),
     status,

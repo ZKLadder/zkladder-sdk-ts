@@ -3,7 +3,7 @@ import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
 import { NftTokenData } from '../interfaces/nft';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
 import getContractABI from '../utils/api/getContractABI';
-import { hexToDecimal } from '../utils/contract/conversions';
+import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
 
 export default class Nft {
   public readonly address: EthereumAddress;
@@ -47,14 +47,15 @@ export default class Nft {
     return isEthereumAddress(ownerAddress);
   }
 
-  public async balanceOf(address: EthereumAddress): Promise<number> {
+  public async balanceOf(address: string): Promise<number> {
+    isEthereumAddress(address);
     const balance = await this.contractAbstraction.balanceOf(address);
-    return hexToDecimal(balance.toNumber());
+    return balance.toNumber();
   }
 
   public async totalSupply(): Promise<Number> {
     const totalSupply = await this.contractAbstraction.totalSupply();
-    return hexToDecimal(totalSupply.toNumber());
+    return totalSupply.toNumber();
   }
 
   public async tokenUri(tokenId:number): Promise<String> {
@@ -78,7 +79,9 @@ export default class Nft {
    * @param operator
    * @returns Boolean indicating if the operator is approved for all of the owners tokens.
    */
-  public async isApprovedForAll(owner: EthereumAddress, operator: EthereumAddress): Promise<boolean> {
+  public async isApprovedForAll(owner: string, operator: string): Promise<boolean> {
+    isEthereumAddress(owner);
+    isEthereumAddress(operator);
     const isApprovedForAll = await this.contractAbstraction.isApprovedForAll(owner, operator);
     return isApprovedForAll;
   }
@@ -99,8 +102,8 @@ export default class Nft {
    * @returns Token data for token at index
    */
   public async tokenByIndex(index:number): Promise<NftTokenData> {
-    const tokenId = await this.contractAbstraction.tokenByIndex(index);
-    const tokenUri = await this.contractAbstraction.tokenUri(tokenId);
+    const tokenId = (await this.contractAbstraction.tokenByIndex(index))?.toNumber();
+    const tokenUri = await this.contractAbstraction.tokenURI(tokenId);
     const owner = await this.contractAbstraction.ownerOf(tokenId);
     return { tokenId, tokenUri, owner };
   }
@@ -111,10 +114,11 @@ export default class Nft {
    * @param index
    * @returns Token data for token owned by owner at index
    */
-  public async tokenOfOwnerByIndex(owner:EthereumAddress, index:number): Promise<NftTokenData> {
-    const tokenId = await this.contractAbstraction.tokenOfOwnerByIndex(owner, index);
-    const tokenUri = await this.contractAbstraction.tokenUri(tokenId);
-    return { tokenId, tokenUri, owner };
+  public async tokenOfOwnerByIndex(owner:string, index:number): Promise<NftTokenData> {
+    const tokenOwner = isEthereumAddress(owner);
+    const tokenId = (await this.contractAbstraction.tokenOfOwnerByIndex(owner, index))?.toNumber();
+    const tokenUri = await this.contractAbstraction.tokenURI(tokenId);
+    return { tokenId, tokenUri, owner: tokenOwner };
   }
 
   /**
@@ -136,7 +140,9 @@ export default class Nft {
    * @param owner
    * @returns An array of token data objects
    */
-  public async getAllTokensOwnedBy(owner:EthereumAddress): Promise<NftTokenData[]> {
+  public async getAllTokensOwnedBy(owner:string): Promise<NftTokenData[]> {
+    isEthereumAddress(owner);
+
     const total = await this.balanceOf(owner);
 
     const promises = [];
@@ -155,7 +161,7 @@ export default class Nft {
    */
   public async mint(): Promise<TransactionData> {
     const tx = await this.contractAbstraction.mint();
-    return tx;
+    return parseTransactionData(tx);
   }
 
   /**
@@ -165,7 +171,7 @@ export default class Nft {
   public async mintAndWait(): Promise<MinedTransactionData> {
     const tx = await this.contractAbstraction.mint();
     const mined = await tx.wait();
-    return mined;
+    return parseMinedTransactionData(mined);
   }
 
   /**
@@ -176,9 +182,12 @@ export default class Nft {
    * @param tokenId
    * @returns Transaction data
    */
-  public async safeTransferFrom(from:EthereumAddress, to:EthereumAddress, tokenId:number): Promise<TransactionData> {
-    const tx = await this.contractAbstraction.safeTransferFrom(from, to, tokenId);
-    return tx;
+  public async safeTransferFrom(from:string, to:string, tokenId:number): Promise<TransactionData> {
+    isEthereumAddress(from);
+    isEthereumAddress(to);
+
+    const tx = await this.contractAbstraction['safeTransferFrom(address,address,uint256)'](from, to, tokenId);
+    return parseTransactionData(tx);
   }
 
   /**
@@ -189,10 +198,10 @@ export default class Nft {
    * @param tokenId
    * @returns Mined transaction data
    */
-  public async safeTransferFromAndWait(from:EthereumAddress, to:EthereumAddress, tokenId:number): Promise<MinedTransactionData> {
-    const tx = await this.contractAbstraction.safeTransferFrom(from, to, tokenId);
+  public async safeTransferFromAndWait(from:string, to:string, tokenId:number): Promise<MinedTransactionData> {
+    const tx = await this.safeTransferFrom(from, to, tokenId);
     const mined = await tx.wait();
-    return mined;
+    return parseMinedTransactionData(mined);
   }
 
   /**
@@ -201,9 +210,10 @@ export default class Nft {
    * @param tokenId
    * @returns Transaction data
    */
-  public async approve(operator: EthereumAddress, tokenId:number): Promise<TransactionData> {
+  public async approve(operator: string, tokenId:number): Promise<TransactionData> {
+    isEthereumAddress(operator);
     const tx = await this.contractAbstraction.approve(operator, tokenId);
-    return tx;
+    return parseTransactionData(tx);
   }
 
   /**
@@ -212,10 +222,10 @@ export default class Nft {
    * @param tokenId
    * @returns Mined transaction data
    */
-  public async approveAndWait(operator: EthereumAddress, tokenId:number): Promise<MinedTransactionData> {
-    const tx = await this.contractAbstraction.approve(operator, tokenId);
+  public async approveAndWait(operator: string, tokenId:number): Promise<MinedTransactionData> {
+    const tx = await this.approve(operator, tokenId);
     const mined = await tx.wait();
-    return mined;
+    return parseMinedTransactionData(mined);
   }
 
   /**
@@ -225,9 +235,10 @@ export default class Nft {
    * @param approved
    * @returns Transaction data
    */
-  public async setApprovalForAll(operator: EthereumAddress, approved:boolean): Promise<TransactionData> {
+  public async setApprovalForAll(operator: string, approved:boolean): Promise<TransactionData> {
+    isEthereumAddress(operator);
     const tx = await this.contractAbstraction.setApprovalForAll(operator, approved);
-    return tx;
+    return parseTransactionData(tx);
   }
 
   /**
@@ -237,9 +248,9 @@ export default class Nft {
    * @param approved
    * @returns Transaction data
    */
-  public async setApprovalForAllAndWait(operator: EthereumAddress, approved:boolean): Promise<MinedTransactionData> {
-    const tx = await this.contractAbstraction.setApprovalForAll(operator, approved);
+  public async setApprovalForAllAndWait(operator: string, approved:boolean): Promise<MinedTransactionData> {
+    const tx = await this.setApprovalForAll(operator, approved);
     const mined = await tx.wait();
-    return mined;
+    return parseMinedTransactionData(mined);
   }
 }

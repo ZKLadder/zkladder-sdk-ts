@@ -9,6 +9,7 @@ interface TransactionData {
   txHash: string,
   nonce: number,
   value: number,
+  wait(): MinedTransactionData
 }
 
 interface MinedTransactionData {

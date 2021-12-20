@@ -23,6 +23,7 @@ describe('parseTransactionData', () => {
     hash: '0x0',
     nonce: 2,
     value: BigNumber.from(100),
+    wait: 'mockFunction',
   };
   test('Correctly formats transaction data', () => {
     expect(parseTransactionData(txDataUnformatted)).toStrictEqual({
@@ -34,6 +35,7 @@ describe('parseTransactionData', () => {
       txHash: '0x0',
       nonce: 2,
       value: 100,
+      wait: 'mockFunction',
     });
   });
 
