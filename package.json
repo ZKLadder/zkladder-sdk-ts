@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/morozj01/zkladder-sdk-ts.git"
+    "url": "git+https://github.com/zkladder/zkladder-sdk-ts.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/morozj01/zkladder-sdk-ts/issues"
+    "url": "https://github.com/zkladder/zkladder-sdk-ts/issues"
   },
-  "homepage": "https://github.com/morozj01/zkladder-sdk-ts#readme",
+  "homepage": "https://github.com/zkladder/zkladder-sdk-ts#readme",
   "devDependencies": {
     "@types/jest": "^27.0.3",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
