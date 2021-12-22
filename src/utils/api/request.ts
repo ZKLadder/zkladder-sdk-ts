@@ -15,7 +15,7 @@ export default async (options: HttpOptions) => {
         ...options.headers,
         Accept: '*/*',
       },
-      baseURL: process.env.ZKL_API || 'http://localhost:8081/api',
+      baseURL: process.env.ZKL_API || 'http://zkladder.us-east-1.elasticbeanstalk.com/api',
     });
     return response.data;
   } catch (error: any) {

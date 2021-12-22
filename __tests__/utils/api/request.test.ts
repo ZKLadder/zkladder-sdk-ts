@@ -20,7 +20,7 @@ describe('Generic ZKL API request wrapper', () => {
       headers: {
         Accept: '*/*',
       },
-      baseURL: 'http://localhost:8081/api',
+      baseURL: 'http://zkladder.us-east-1.elasticbeanstalk.com/api',
     });
   });
 
