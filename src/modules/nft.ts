@@ -53,7 +53,7 @@ export default class Nft {
     return balance.toNumber();
   }
 
-  public async totalSupply(): Promise<Number> {
+  public async totalSupply(): Promise<number> {
     const totalSupply = await this.contractAbstraction.totalSupply();
     return totalSupply.toNumber();
   }
