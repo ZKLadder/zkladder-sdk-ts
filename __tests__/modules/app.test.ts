@@ -1,6 +1,6 @@
 import ZKLadder from '../../src/modules/app';
 
-jest.mock('../../src/utils/infura-ipfs/client', () => (jest.fn()));
+jest.mock('../../src/utils/infuraIpfs/client', () => (jest.fn()));
 
 describe('ZKL parent class', () => {
   const zkl = new ZKLadder('12345', 'mockProvider');
