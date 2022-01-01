@@ -6,6 +6,7 @@ interface HttpOptions{
   params?: object; // querystring parameters
   data?: object; // request body
   headers?: AxiosRequestHeaders; // request headers
+  onUploadProgress?(event: ProgressEvent): void
 }
 
 interface GetContractABIOptions {
