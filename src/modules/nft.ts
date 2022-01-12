@@ -1,35 +1,17 @@
-import { providers, Contract } from 'ethers';
+import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
-import { NftTokenData } from '../interfaces/nft';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import getContractABI from '../utils/api/getContractABI';
 import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
+import { NftTokenData } from '../interfaces/nft';
 
+/**
+ * Adds support for base ERC-721 defined functionality
+ * https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721
+ */
 export default class Nft {
   public readonly address: EthereumAddress;
 
-  private readonly ethersProvider: providers.Web3Provider;
-
-  private readonly contractAbstraction: Contract;
-
-  public static async setup(address:string, provider:any) {
-    const nft = await new this(address, provider);
-    const { ethersProvider } = nft;
-    const { abi } = await getContractABI({ id: '1' });
-    const contractAbstraction = new Contract(address, abi, ethersProvider.getSigner());
-    Object.assign(nft, { contractAbstraction });
-    if (await nft.supportsInterface('0x780e9d63')) return nft;
-    throw new Error('The contract address that you have provided is not a valid ERC-721Enumerable');
-  }
-
-  private constructor(address:string, provider:any) {
-    this.address = address as EthereumAddress;
-    this.ethersProvider = new providers.Web3Provider(provider);
-  }
-
-  protected isSetUp() {
-    if (!this.contractAbstraction) throw new Error('Please ensure you have used the setup function to instantiate this module');
-  }
+  protected readonly contractAbstraction: Contract;
 
   /* Read-Only Functions */
   public async name(): Promise<string> {
@@ -58,9 +40,41 @@ export default class Nft {
     return totalSupply.toNumber();
   }
 
-  public async tokenUri(tokenId:number): Promise<String> {
+  public async tokenUri(tokenId:number): Promise<string> {
     const tokenUri = await this.contractAbstraction.tokenURI(tokenId);
     return tokenUri;
+  }
+
+  public async baseUri(): Promise<string> {
+    const baseUri = await this.contractAbstraction.baseUri();
+    return baseUri;
+  }
+
+  public async supportsInterface(interfaceId: string) : Promise<boolean> {
+    const supportsInterface = await this.contractAbstraction.supportsInterface(interfaceId);
+    return supportsInterface;
+  }
+
+  public async getToken(tokenId:number): Promise<NftTokenData> {
+    const tokenUri = await this.tokenUri(tokenId);
+    const owner = await this.ownerOf(tokenId);
+    return { tokenId, tokenUri, owner };
+  }
+
+  public async getAllTokens(): Promise<NftTokenData[]> {
+    const total = await this.totalSupply();
+    const promises = [];
+    for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
+      promises.push(this.getToken(tokenIndex));
+    }
+    const results = await Promise.all(promises);
+    return results;
+  }
+
+  public async getAllTokensOwnedBy(owner:string): Promise<NftTokenData[]> {
+    isEthereumAddress(owner);
+    const allTokens = await this.getAllTokens();
+    return allTokens.filter((token) => (token.owner === owner));
   }
 
   /**
@@ -86,94 +100,7 @@ export default class Nft {
     return isApprovedForAll;
   }
 
-  public async supportsInterface(interfaceId: string) : Promise<boolean> {
-    const supportsInterface = await this.contractAbstraction.supportsInterface(interfaceId);
-    return supportsInterface;
-  }
-
-  public async baseUri(): Promise<string> {
-    const baseUri = await this.contractAbstraction.baseUri();
-    return baseUri;
-  }
-
-  /**
-   * Returns token data by index. Indexed from 0 ... totalSupply()
-   * @param index
-   * @returns Token data for token at index
-   */
-  public async tokenByIndex(index:number): Promise<NftTokenData> {
-    const tokenId = (await this.contractAbstraction.tokenByIndex(index))?.toNumber();
-    const tokenUri = await this.contractAbstraction.tokenURI(tokenId);
-    const owner = await this.contractAbstraction.ownerOf(tokenId);
-    return { tokenId, tokenUri, owner };
-  }
-
-  /**
-   * Returns token data owned by owner at index. Indexed from 0 ... balance(owner)
-   * @param owner
-   * @param index
-   * @returns Token data for token owned by owner at index
-   */
-  public async tokenOfOwnerByIndex(owner:string, index:number): Promise<NftTokenData> {
-    const tokenOwner = isEthereumAddress(owner);
-    const tokenId = (await this.contractAbstraction.tokenOfOwnerByIndex(owner, index))?.toNumber();
-    const tokenUri = await this.contractAbstraction.tokenURI(tokenId);
-    return { tokenId, tokenUri, owner: tokenOwner };
-  }
-
-  /**
-   * Get all tokens at this contract address
-   * @returns An array of token data objects
-   */
-  public async getAllTokens(): Promise <NftTokenData[]> {
-    const total = await this.totalSupply();
-    const promises = [];
-    for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
-      promises.push(this.tokenByIndex(tokenIndex));
-    }
-    const results = await Promise.all(promises);
-    return results;
-  }
-
-  /**
-   * Get all tokens owned by owner
-   * @param owner
-   * @returns An array of token data objects
-   */
-  public async getAllTokensOwnedBy(owner:string): Promise<NftTokenData[]> {
-    isEthereumAddress(owner);
-
-    const total = await this.balanceOf(owner);
-
-    const promises = [];
-    for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
-      promises.push(this.tokenOfOwnerByIndex(owner, tokenIndex));
-    }
-    const results = await Promise.all(promises);
-    return results;
-  }
-
   /* Transactions */
-
-  /**
-   * Mints a new NFT owned by the signer address provided at SDK instantiation
-   * @returns Transaction data
-   */
-  public async mint(): Promise<TransactionData> {
-    const tx = await this.contractAbstraction.mint();
-    return parseTransactionData(tx);
-  }
-
-  /**
-   * Mints a new NFT owned by the signer address provided at SDK instantiation and waits for it to be mined
-   * @returns Mined transaction data
-   */
-  public async mintAndWait(): Promise<MinedTransactionData> {
-    const tx = await this.contractAbstraction.mint();
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
-
   /**
    * Transfers tokenId from the from address to the to address.
    * @remarks tokenId must be owned by the from address, or the from address must be approved to transfer tokenId
