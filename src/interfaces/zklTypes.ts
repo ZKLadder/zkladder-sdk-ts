@@ -1,7 +1,7 @@
-import NftClass from '../modules/nft';
+import NftWhitelistedClass from '../modules/nftWhitelisted';
 import IpfsClass from '../utils/infuraIpfs/client';
 
-interface Nft extends NftClass {}
+interface NftWhitelisted extends NftWhitelistedClass {}
 interface Ipfs extends IpfsClass {}
 
-export { Nft, Ipfs };
+export { NftWhitelisted, Ipfs };

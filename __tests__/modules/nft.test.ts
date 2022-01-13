@@ -1,290 +1,257 @@
-import { providers, Contract } from 'ethers';
+import { Contract } from 'ethers';
+import { isEthereumAddress, EthereumAddress } from '../../src/interfaces/address';
 import Nft from '../../src/modules/nft';
-import getContractABI from '../../src/utils/api/getContractABI';
 import ethersNftAbstraction from '../mocks/ethersNftAbstraction';
-import { isEthereumAddress } from '../../src/interfaces/address';
+import { parseTransactionData, parseMinedTransactionData } from '../../src/utils/contract/conversions';
 
-jest.mock('../../src/utils/api/getContractABI', () => (jest.fn()));
-jest.mock('ethers', () => ({
-  providers: {
-    Web3Provider: jest.fn(),
-  },
-  Contract: jest.fn(),
-}));
+// Extend NftEnumerable and unit test its methods
+class NftWrapper extends Nft {
+  protected readonly contractAbstraction: Contract;
+
+  public readonly address: EthereumAddress;
+
+  constructor(address:EthereumAddress, contractAbstraction: Contract) {
+    super();
+    this.address = address;
+    this.contractAbstraction = contractAbstraction;
+  }
+}
 
 jest.mock('../../src/interfaces/address', () => ({
   isEthereumAddress: jest.fn().mockImplementation((address) => (address)),
 }));
 
-const mockGetContractAbi = getContractABI as jest.Mocked<any>;
-const mockProviders = providers as jest.Mocked<any>;
-const mockContract = Contract as jest.Mocked<any>;
+jest.mock('../../src/utils/contract/conversions', () => ({
+  parseTransactionData: jest.fn(),
+  parseMinedTransactionData: jest.fn(),
+}));
+
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
+const mockParseTransaction = parseTransactionData as jest.Mocked<any>;
+const mockParseMinedTransaction = parseMinedTransactionData as jest.Mocked<any>;
 
-describe('Setup function', () => {
-  test('Correctly calls dependencies when instantiating nft class', async () => {
-    const mockSupportsInterface = jest.spyOn(Nft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
-    mockContract.mockReturnValue({});
+describe('NftEnumerable class', () => {
+  const nftWrapper = new NftWrapper(
+    '0x12345' as EthereumAddress,
+    ethersNftAbstraction as any,
+  );
 
-    const nft = await Nft.setup('12345', 'mockProvider');
+  test('name correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.name.mockResolvedValueOnce('mockNFT');
 
-    expect(mockSupportsInterface).toHaveBeenCalledWith('0x780e9d63');
-    expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
-    expect(mockContract).toHaveBeenCalledWith('12345', 'mockAbi', 'mockSigner');
-    expect(nft instanceof Nft).toBe(true);
-    mockSupportsInterface.mockRestore();
-  });
+    const result = await nftWrapper.name();
 
-  test('Throws if supportsInterface returns false', async () => {
-    const mockSupportsInterface = jest.spyOn(Nft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(false)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
-    mockContract.mockReturnValue({});
-
-    try {
-      await Nft.setup('12345', 'mockProvider');
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toStrictEqual(new Error('The contract address that you have provided is not a valid ERC-721Enumerable'));
-    }
-    mockSupportsInterface.mockRestore();
-  });
-
-  test('Rethrows API errors', async () => {
-    const mockSupportsInterface = jest.spyOn(Nft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockRejectedValueOnce('The ZKL API is not operational');
-    mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
-    mockContract.mockReturnValue({});
-
-    try {
-      await Nft.setup('12345', 'mockProvider');
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toStrictEqual('The ZKL API is not operational');
-    }
-    mockSupportsInterface.mockRestore();
-  });
-});
-
-describe('Class instance methods', () => {
-  test('Implements supported methods', async () => {
-    jest.spyOn(Nft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
-    mockContract.mockReturnValue({});
-    const nft = await Nft.setup('12345', 'mockProvider');
-    expect(typeof nft.name).toBe('function');
-    expect(typeof nft.symbol).toBe('function');
-    expect(typeof nft.ownerOf).toBe('function');
-    expect(typeof nft.balanceOf).toBe('function');
-    expect(typeof nft.totalSupply).toBe('function');
-    expect(typeof nft.tokenUri).toBe('function');
-    expect(typeof nft.getApproved).toBe('function');
-    expect(typeof nft.isApprovedForAll).toBe('function');
-    expect(typeof nft.supportsInterface).toBe('function');
-    expect(typeof nft.baseUri).toBe('function');
-    expect(typeof nft.tokenByIndex).toBe('function');
-    expect(typeof nft.tokenOfOwnerByIndex).toBe('function');
-    expect(typeof nft.getAllTokens).toBe('function');
-    expect(typeof nft.getAllTokensOwnedBy).toBe('function');
-    expect(typeof nft.mint).toBe('function');
-    expect(typeof nft.mintAndWait).toBe('function');
-    expect(typeof nft.safeTransferFrom).toBe('function');
-    expect(typeof nft.safeTransferFromAndWait).toBe('function');
-    expect(typeof nft.approve).toBe('function');
-    expect(typeof nft.approveAndWait).toBe('function');
-    expect(typeof nft.setApprovalForAll).toBe('function');
-    expect(typeof nft.setApprovalForAllAndWait).toBe('function');
-  });
-
-  test('Class methods correctly call the underlying contract abstraction', async () => {
-    jest.spyOn(Nft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
-    mockContract.mockReturnValue(ethersNftAbstraction);
-
-    const nft = await Nft.setup('12345', 'mockProvider');
-
-    // .name()
-    await nft.name();
     expect(ethersNftAbstraction.name).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.name.mockReset();
+    expect(result).toEqual('mockNFT');
+  });
 
-    // .symbol()
-    await nft.symbol();
+  test('symbol correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.symbol.mockResolvedValueOnce('MNFT');
+
+    const result = await nftWrapper.symbol();
+
     expect(ethersNftAbstraction.symbol).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.symbol.mockReset();
+    expect(result).toEqual('MNFT');
+  });
 
-    // .ownerOf()
-    await nft.ownerOf(1);
+  test('ownerOf correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.ownerOf.mockResolvedValueOnce('0xmockOwner');
+
+    const result = await nftWrapper.ownerOf(1);
+
     expect(ethersNftAbstraction.ownerOf).toHaveBeenCalledWith(1);
-    ethersNftAbstraction.ownerOf.mockReset();
+    expect(result).toEqual('0xmockOwner');
+  });
 
-    // .balanceOf
-    ethersNftAbstraction.balanceOf.mockResolvedValue({
-      toNumber: () => ('123'),
-    });
-    await nft.balanceOf('0x2345');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0x2345');
-    expect(ethersNftAbstraction.balanceOf).toHaveBeenCalledWith('0x2345');
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.balanceOf.mockReset();
+  test('balanceOf correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.balanceOf.mockResolvedValueOnce({ toNumber: () => (10) });
 
-    // .totalSupply()
-    ethersNftAbstraction.totalSupply.mockResolvedValue({
-      toNumber: () => ('123'),
-    });
-    await nft.totalSupply();
+    const result = await nftWrapper.balanceOf('0xMockOwner');
+
+    expect(ethersNftAbstraction.balanceOf).toHaveBeenCalledWith('0xMockOwner');
+    expect(result).toEqual(10);
+  });
+
+  test('totalSupply correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.totalSupply.mockResolvedValueOnce({ toNumber: () => (10) });
+
+    const result = await nftWrapper.totalSupply();
+
     expect(ethersNftAbstraction.totalSupply).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.totalSupply.mockReset();
+    expect(result).toEqual(10);
+  });
 
-    // .tokenUri()
-    await nft.tokenUri(1);
-    expect(ethersNftAbstraction.tokenURI).toHaveBeenCalledWith(1);
-    ethersNftAbstraction.tokenURI.mockReset();
+  test('tokenUri correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.tokenURI.mockResolvedValueOnce('https://mockToken.com/3');
 
-    // .getApproved()
-    await nft.getApproved(1);
-    expect(ethersNftAbstraction.getApproved).toHaveBeenCalledWith(1);
-    ethersNftAbstraction.getApproved.mockReset();
+    const result = await nftWrapper.tokenUri(3);
 
-    // .isApprovedForAll()
-    await nft.isApprovedForAll('owner', 'operator');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('owner');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('operator');
-    expect(ethersNftAbstraction.isApprovedForAll).toHaveBeenCalledWith('owner', 'operator');
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.isApprovedForAll.mockReset();
+    expect(ethersNftAbstraction.tokenURI).toHaveBeenCalledWith(3);
+    expect(result).toEqual('https://mockToken.com/3');
+  });
 
-    // .supportsInterface()
-    await nft.supportsInterface('0x12345');
-    expect(ethersNftAbstraction.supportsInterface).toHaveBeenCalledWith('0x12345');
-    ethersNftAbstraction.supportsInterface.mockReset();
+  test('baseUri correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.baseUri.mockResolvedValueOnce('https://mockToken.com');
 
-    // .baseUri()
-    await nft.baseUri();
+    const result = await nftWrapper.baseUri();
+
     expect(ethersNftAbstraction.baseUri).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.baseUri.mockReset();
+    expect(result).toEqual('https://mockToken.com');
+  });
 
-    // .tokenByIndex()
-    await nft.tokenByIndex(1);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(1);
-    ethersNftAbstraction.tokenByIndex.mockReset();
+  test('supportsInterface correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.supportsInterface.mockResolvedValueOnce(true);
 
-    // .tokenOfOwnerByIndex()
-    await nft.tokenOfOwnerByIndex('owner', 1);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('owner');
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.tokenOfOwnerByIndex.mockReset();
+    const result = await nftWrapper.supportsInterface('interfaceId');
 
-    // .getAllTokens()
-    ethersNftAbstraction.totalSupply.mockResolvedValue({
-      toNumber: () => (5),
+    expect(ethersNftAbstraction.supportsInterface).toHaveBeenCalledWith('interfaceId');
+    expect(result).toEqual(true);
+  });
+
+  test('getToken correctly calls dependencies and returns results', async () => {
+    jest.spyOn(nftWrapper, 'tokenUri').mockImplementationOnce(() => (Promise.resolve('https://mockNft.com')));
+    jest.spyOn(nftWrapper, 'ownerOf').mockImplementation(() => (Promise.resolve('0xtokenHolder') as any));
+
+    const token = await nftWrapper.getToken(1);
+
+    expect(nftWrapper.tokenUri).toHaveBeenCalledWith(1);
+    expect(nftWrapper.ownerOf).toHaveBeenCalledWith(1);
+
+    expect(token).toStrictEqual({
+      tokenId: 1,
+      tokenUri: 'https://mockNft.com',
+      owner: '0xtokenHolder',
     });
-    await nft.getAllTokens();
-    expect(ethersNftAbstraction.totalSupply).toHaveBeenCalledTimes(1);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(0);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(1);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(2);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(3);
-    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(4);
-    ethersNftAbstraction.tokenByIndex.mockReset();
-    ethersNftAbstraction.totalSupply.mockReset();
+  });
 
-    // .getAllTokensOwnedBy()
-    ethersNftAbstraction.balanceOf.mockResolvedValue({
-      toNumber: () => (5),
-    });
-    await nft.getAllTokensOwnedBy('owner');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('owner');
-    expect(ethersNftAbstraction.balanceOf).toHaveBeenCalledTimes(1);
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 0);
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 1);
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 2);
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 3);
-    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('owner', 4);
-    ethersNftAbstraction.tokenOfOwnerByIndex.mockReset();
-    ethersNftAbstraction.balanceOf.mockReset();
-    mockIsEthereumAddress.mockClear();
+  test('getAllTokens correctly calls dependencies and returns results', async () => {
+    jest.spyOn(nftWrapper, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
+    jest.spyOn(nftWrapper, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
 
-    // Transactions
+    const result = await nftWrapper.getAllTokens();
+
+    expect(nftWrapper.totalSupply).toHaveBeenCalledTimes(1);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(0);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(1);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(2);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(3);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(4);
+
+    expect(result).toStrictEqual(new Array(5).fill('token'));
+  });
+
+  test('getAllTokensOwnedBy correctly calls dependencies and returns results', async () => {
+    jest.spyOn(nftWrapper, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
+    jest.spyOn(nftWrapper, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
+
+    const result = await nftWrapper.getAllTokens();
+
+    expect(nftWrapper.totalSupply).toHaveBeenCalledTimes(1);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(0);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(1);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(2);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(3);
+    expect(nftWrapper.getToken).toHaveBeenCalledWith(4);
+
+    expect(result).toStrictEqual(new Array(5).fill('token'));
+  });
+
+  test('getApproved correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.getApproved.mockResolvedValueOnce('0x12345');
+
+    const result = await nftWrapper.getApproved(3);
+
+    expect(ethersNftAbstraction.getApproved).toHaveBeenCalledWith(3);
+    expect(result).toEqual('0x12345');
+  });
+
+  test('isApprovedForAll correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.isApprovedForAll.mockResolvedValueOnce(true);
+
+    const result = await nftWrapper.isApprovedForAll('0xowner', '0xoperator');
+
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xowner');
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xoperator');
+    expect(ethersNftAbstraction.isApprovedForAll).toHaveBeenCalledWith('0xowner', '0xoperator');
+    expect(result).toEqual(true);
+  });
+
+  test('safeTransferFrom correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockResolvedValueOnce({ mock: 'result' });
+    mockParseTransaction.mockReturnValueOnce({ parsed: 'result' });
+
+    const result = await nftWrapper.safeTransferFrom('0xowner', '0xoperator', 3);
+
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xowner');
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xoperator');
+    expect(ethersNftAbstraction['safeTransferFrom(address,address,uint256)']).toHaveBeenCalledWith('0xowner', '0xoperator', 3);
+    expect(mockParseTransaction).toHaveBeenCalledWith({ mock: 'result' });
+    expect(result).toEqual({ parsed: 'result' });
+  });
+
+  test('safeTransferFromAndWait correctly calls dependencies and returns results', async () => {
     const wait = jest.fn();
+    const tx = { wait };
 
-    // .mint()
-    ethersNftAbstraction.mint.mockResolvedValue({});
-    await nft.mint();
-    expect(ethersNftAbstraction.mint).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.mint.mockReset();
+    jest.spyOn(nftWrapper, 'safeTransferFrom').mockImplementationOnce(() => (Promise.resolve(tx) as any));
+    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
 
-    // .mintAndWait()
-    ethersNftAbstraction.mint.mockResolvedValue({ wait });
-    wait.mockResolvedValue({});
-    await nft.mintAndWait();
-    expect(ethersNftAbstraction.mint).toHaveBeenCalledTimes(1);
+    const result = await nftWrapper.safeTransferFromAndWait('0xowner', '0xoperator', 3);
+
+    expect(nftWrapper.safeTransferFrom).toHaveBeenCalledWith('0xowner', '0xoperator', 3);
     expect(wait).toHaveBeenCalledTimes(1);
-    ethersNftAbstraction.mint.mockReset();
-    wait.mockReset();
+    expect(result).toEqual({ transaction: 'result' });
+  });
 
-    // .safeTransferFrom()
-    ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockResolvedValue({});
-    await nft.safeTransferFrom('from', 'to', 1);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('from');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('to');
-    expect(ethersNftAbstraction['safeTransferFrom(address,address,uint256)']).toHaveBeenCalledWith('from', 'to', 1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockReset();
+  test('approve correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.approve.mockResolvedValueOnce({ mock: 'result' });
+    mockParseTransaction.mockReturnValueOnce({ parsed: 'result' });
 
-    // .safeTransferFromAndWait()
-    ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockResolvedValue({ wait });
-    wait.mockResolvedValue({});
-    await nft.safeTransferFromAndWait('from', 'to', 1);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('from');
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('to');
-    expect(ethersNftAbstraction['safeTransferFrom(address,address,uint256)']).toHaveBeenCalledWith('from', 'to', 1);
+    const result = await nftWrapper.approve('0xoperator', 3);
+
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xoperator');
+    expect(ethersNftAbstraction.approve).toHaveBeenCalledWith('0xoperator', 3);
+    expect(mockParseTransaction).toHaveBeenCalledWith({ mock: 'result' });
+    expect(result).toEqual({ parsed: 'result' });
+  });
+
+  test('approveAndWait correctly calls dependencies and returns results', async () => {
+    const wait = jest.fn();
+    const tx = { wait };
+
+    jest.spyOn(nftWrapper, 'approve').mockImplementationOnce(() => (Promise.resolve(tx) as any));
+    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
+
+    const result = await nftWrapper.approveAndWait('0xoperator', 3);
+
+    expect(nftWrapper.approve).toHaveBeenCalledWith('0xoperator', 3);
     expect(wait).toHaveBeenCalledTimes(1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockReset();
-    wait.mockReset();
+    expect(result).toEqual({ transaction: 'result' });
+  });
 
-    // .approve()
-    ethersNftAbstraction.approve.mockResolvedValue({});
-    await nft.approve('operator', 1);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('operator');
-    expect(ethersNftAbstraction.approve).toHaveBeenCalledWith('operator', 1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.approve.mockReset();
+  test('setApprovalForAll correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.setApprovalForAll.mockResolvedValueOnce({ mock: 'result' });
+    mockParseTransaction.mockReturnValueOnce({ parsed: 'result' });
 
-    // .approveAndWait()
-    ethersNftAbstraction.approve.mockResolvedValue({ wait });
-    wait.mockResolvedValue({});
-    await nft.approveAndWait('operator', 1);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('operator');
-    expect(ethersNftAbstraction.approve).toHaveBeenCalledWith('operator', 1);
+    const result = await nftWrapper.setApprovalForAll('0xoperator', true);
+
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xoperator');
+    expect(ethersNftAbstraction.setApprovalForAll).toHaveBeenCalledWith('0xoperator', true);
+    expect(mockParseTransaction).toHaveBeenCalledWith({ mock: 'result' });
+    expect(result).toEqual({ parsed: 'result' });
+  });
+
+  test('setApprovalForAllAndWait correctly calls dependencies and returns results', async () => {
+    const wait = jest.fn();
+    const tx = { wait };
+
+    jest.spyOn(nftWrapper, 'setApprovalForAll').mockImplementationOnce(() => (Promise.resolve(tx) as any));
+    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
+
+    const result = await nftWrapper.setApprovalForAllAndWait('0xoperator', true);
+
+    expect(nftWrapper.setApprovalForAll).toHaveBeenCalledWith('0xoperator', true);
     expect(wait).toHaveBeenCalledTimes(1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.approve.mockReset();
-    wait.mockReset();
-
-    // .setApprovalForAll()
-    ethersNftAbstraction.setApprovalForAll.mockResolvedValue({});
-    await nft.setApprovalForAll('operator', true);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('operator');
-    expect(ethersNftAbstraction.setApprovalForAll).toHaveBeenCalledWith('operator', true);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.approve.mockReset();
-
-    // .setApprovalForAllAndWait()
-    ethersNftAbstraction.setApprovalForAll.mockResolvedValue({ wait });
-    wait.mockResolvedValue({});
-    await nft.setApprovalForAllAndWait('operator', true);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('operator');
-    expect(ethersNftAbstraction.setApprovalForAll).toHaveBeenCalledWith('operator', true);
-    expect(wait).toHaveBeenCalledTimes(1);
-    mockIsEthereumAddress.mockClear();
-    ethersNftAbstraction.approve.mockReset();
-    wait.mockReset();
+    expect(result).toEqual({ transaction: 'result' });
   });
 });
