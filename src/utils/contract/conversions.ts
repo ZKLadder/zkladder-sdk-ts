@@ -5,7 +5,7 @@ import { isEthereumAddress } from '../../interfaces/address';
 const hexToDecimal = (hexString: string): number => parseInt(hexString, 16);
 
 /**
- * Accepts an Ethers.js BigNumber amount in Wei and returns the decimal amount in Eth rounded to the nearest 9 decimal places
+ * Accepts an Ethers.js BigNumber or string amount in Wei and returns the decimal amount in Eth rounded to the nearest 9 decimal places
  * @param weiAmount
  * @returns Amount in Eth
  */
@@ -26,7 +26,7 @@ const weiToEth = (weiAmount:BigNumber | string): number => {
 };
 
 /**
- * Accepts an Ethers.js BigNumber amount in Gwei and returns the decimal amount in Eth rounded to the nearest 9 decimal places
+ * Accepts an Ethers.js BigNumber or string amount in Gwei and returns the decimal amount in Eth rounded to the nearest 9 decimal places
  * @param gweiAmount
  * @returns Amount in Eth
  */
