@@ -108,54 +108,6 @@ describe('NftEnumerable class', () => {
     expect(result).toEqual(true);
   });
 
-  test('getToken correctly calls dependencies and returns results', async () => {
-    jest.spyOn(nftWrapper, 'tokenUri').mockImplementationOnce(() => (Promise.resolve('https://mockNft.com')));
-    jest.spyOn(nftWrapper, 'ownerOf').mockImplementation(() => (Promise.resolve('0xtokenHolder') as any));
-
-    const token = await nftWrapper.getToken(1);
-
-    expect(nftWrapper.tokenUri).toHaveBeenCalledWith(1);
-    expect(nftWrapper.ownerOf).toHaveBeenCalledWith(1);
-
-    expect(token).toStrictEqual({
-      tokenId: 1,
-      tokenUri: 'https://mockNft.com',
-      owner: '0xtokenHolder',
-    });
-  });
-
-  test('getAllTokens correctly calls dependencies and returns results', async () => {
-    jest.spyOn(nftWrapper, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
-    jest.spyOn(nftWrapper, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
-
-    const result = await nftWrapper.getAllTokens();
-
-    expect(nftWrapper.totalSupply).toHaveBeenCalledTimes(1);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(0);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(1);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(2);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(3);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(4);
-
-    expect(result).toStrictEqual(new Array(5).fill('token'));
-  });
-
-  test('getAllTokensOwnedBy correctly calls dependencies and returns results', async () => {
-    jest.spyOn(nftWrapper, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
-    jest.spyOn(nftWrapper, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
-
-    const result = await nftWrapper.getAllTokens();
-
-    expect(nftWrapper.totalSupply).toHaveBeenCalledTimes(1);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(0);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(1);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(2);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(3);
-    expect(nftWrapper.getToken).toHaveBeenCalledWith(4);
-
-    expect(result).toStrictEqual(new Array(5).fill('token'));
-  });
-
   test('getApproved correctly calls dependencies and returns results', async () => {
     ethersNftAbstraction.getApproved.mockResolvedValueOnce('0x12345');
 

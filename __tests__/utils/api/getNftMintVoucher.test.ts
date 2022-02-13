@@ -1,29 +1,38 @@
-import getContractABI from '../../../src/utils/api/getContractABI';
+import getNftMintVoucher from '../../../src/utils/api/getNftMintVoucher';
 import request from '../../../src/utils/api/request';
 
 jest.mock('../../../src/utils/api/request', () => (jest.fn()));
 
 const mockRequest = request as jest.Mocked<any>;
 
-describe('getContractABI request wrapper', () => {
+describe('getNftMintVoucher request wrapper', () => {
   test('Calls axios with the correct parameters', async () => {
     mockRequest.mockResolvedValueOnce('test');
 
-    await getContractABI({
-      id: '3',
+    await getNftMintVoucher({
+      contractAddress: '0xcontract',
+      userAddress: '0xuser',
+      chainId: 1,
     });
 
     expect(mockRequest).toHaveBeenCalledWith({
       method: 'get',
-      url: '/v1/contracts/3/abi',
+      url: '/v1/vouchers',
+      params: {
+        contractAddress: '0xcontract',
+        userAddress: '0xuser',
+        chainId: 1,
+      },
     });
   });
 
   test('Returns response data correctly', async () => {
     mockRequest.mockResolvedValueOnce('MockData');
 
-    const response = await getContractABI({
-      id: '3',
+    const response = await getNftMintVoucher({
+      contractAddress: '0xcontract',
+      userAddress: '0xuser',
+      chainId: 1,
     });
 
     expect(response).toStrictEqual('MockData');
@@ -33,8 +42,10 @@ describe('getContractABI request wrapper', () => {
     mockRequest.mockRejectedValueOnce(new Error('Not working, Method:[get], URL:[http://localhost:8081/api/v1/contracts/3/abi]'));
 
     try {
-      await getContractABI({
-        id: '3',
+      await getNftMintVoucher({
+        contractAddress: '0xcontract',
+        userAddress: '0xuser',
+        chainId: 1,
       });
       expect(true).toBe(false); // should be unreachable
     } catch (error) {

@@ -1,5 +1,6 @@
 import { providers } from 'ethers';
 import { EthereumAddress } from '../interfaces/address';
+import { hexToDecimal } from '../utils/contract/conversions';
 
 /**
  * Exposes account data of the provider underlying the Ethers contract abstraction
@@ -17,5 +18,22 @@ export default class Provider {
     const accounts = await this.ethersProvider.send('eth_accounts', []);
     if (!Array.isArray(accounts) || accounts.length < 1) throw new Error('No primary account');
     return accounts[0];
+  }
+
+  protected async getChainId(): Promise<number> {
+    const chainId = await this.ethersProvider.send('eth_chainId', []);
+    return hexToDecimal(chainId);
+  }
+
+  protected async signTypedData(data:string) {
+    const primaryAcount = await this.getPrimaryAccount();
+    const signature = await this.ethersProvider.send(
+      'eth_signTypedData_v4',
+      [
+        primaryAcount,
+        data,
+      ],
+    );
+    return signature;
   }
 }

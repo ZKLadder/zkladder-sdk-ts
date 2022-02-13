@@ -6,6 +6,7 @@ interface TransactionData {
   from: string,
   gasLimit: number,
   gasPrice: number,
+  gasCost:number,
   txHash: string,
   nonce: number,
   value: number,

@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import Ipfs from '../../../src/utils/infuraIpfs/client';
+import Ipfs from '../../src/modules/infuraIpfs';
 
 const cidTool = require('cid-tool');
 
@@ -244,7 +244,7 @@ describe('IPFS client', () => {
     const mockDetectIpfsUrl = jest.spyOn(client, 'detectIpfsUri').mockImplementation(() => (jest.fn()));
     mockDetectIpfsUrl.mockReturnValue('qm12345');
 
-    expect(client.getGatewayUrl('qm12345')).toEqual('qm12345.ipfs.infura-ipfs.io');
+    expect(client.getGatewayUrl('qm12345')).toEqual('https://qm12345.ipfs.infura-ipfs.io');
     expect(mockDetectIpfsUrl).toHaveBeenCalledWith('qm12345');
   });
 
@@ -393,9 +393,9 @@ describe('IPFS client', () => {
     await client.addFiles(mockFiles, onuploadprogress);
 
     expect(mockFormDataAppend).toHaveBeenCalledTimes(3);
-    expect(mockFormDataAppend).toHaveBeenCalledWith('file1', { test: '123' });
-    expect(mockFormDataAppend).toHaveBeenCalledWith('file2', { test: '456' });
-    expect(mockFormDataAppend).toHaveBeenCalledWith('file3', { test: '789' });
+    expect(mockFormDataAppend).toHaveBeenCalledWith('file1', { test: '123' }, 'file1');
+    expect(mockFormDataAppend).toHaveBeenCalledWith('file2', { test: '456' }, 'file2');
+    expect(mockFormDataAppend).toHaveBeenCalledWith('file3', { test: '789' }, 'file3');
     expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
       method: 'post',
       url: '/api/v0/add',
