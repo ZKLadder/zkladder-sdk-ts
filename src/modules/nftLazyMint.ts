@@ -1,8 +1,7 @@
 import { providers, Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
-import { Role, MintVoucher } from '../interfaces/nftWhitelisted';
+import { Role, NftMintVoucher } from '../interfaces/nftLazyMint';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import getContractABI from '../utils/api/getContractABI';
 import {
   parseTransactionData, parseMinedTransactionData, ethToWei, weiToEth,
 } from '../utils/contract/conversions';
@@ -11,37 +10,19 @@ import Nft from './nft';
 import AccessControl from './accessControl';
 import Provider from './provider';
 
-interface NftWhitelisted extends Nft, AccessControl, Provider {}
+interface NftLazyMint extends Nft, AccessControl, Provider {}
 
-class NftWhitelisted {
+class NftLazyMint {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.Web3Provider;
 
   protected readonly contractAbstraction: Contract;
 
-  public static async setup(address:string, provider:any) {
-    const nft = await new this(address, provider);
-    const { ethersProvider } = nft;
-    const { abi } = await getContractABI({ id: '3' });
-    const contractAbstraction = new Contract(address, abi, ethersProvider.getSigner());
-    Object.assign(nft, { contractAbstraction });
-    return nft;
-  }
-
-  constructor(address:string, provider:any) {
-    this.address = address as EthereumAddress;
-    this.ethersProvider = new providers.Web3Provider(provider);
-  }
-
-  private async onlyRole(role:Role): Promise<void> {
+  protected async onlyRole(role:Role): Promise<void> {
     const primaryAccount = await this.getPrimaryAccount();
     const hasRole = await this.hasRole(role, primaryAccount);
     if (!hasRole) throw new Error('The account you are connected with is not the administrator of this contract');
-  }
-
-  protected isSetUp() {
-    if (!this.contractAbstraction) throw new Error('Please ensure you have used the setup function to instantiate this module');
   }
 
   /* Read-Only Functions */
@@ -96,32 +77,66 @@ class NftWhitelisted {
     return parseMinedTransactionData(mined);
   }
 
-  public async mintTo(to:string, tokenUri:string): Promise<TransactionData> {
+  public async mintToWithUri(to:string, tokenUri:string): Promise<TransactionData> {
     await this.onlyRole('MINTER_ROLE');
     isEthereumAddress(to);
     const tx = await this.contractAbstraction.mintTo(to, tokenUri);
     return parseTransactionData(tx);
   }
 
-  public async mintToAndWait(to:string, tokenUri:string): Promise<MinedTransactionData> {
-    const tx = await this.mintTo(to, tokenUri);
+  public async mintToWithUriAndWait(to:string, tokenUri:string): Promise<MinedTransactionData> {
+    const tx = await this.mintToWithUri(to, tokenUri);
     const mined = await tx.wait();
     return parseMinedTransactionData(mined);
   }
 
-  public async mint(voucher: MintVoucher): Promise<TransactionData> {
+  public async mintWithUri(voucher: NftMintVoucher, tokenUri:string): Promise<TransactionData> {
     const mintPrice = await this.contractAbstraction.salePrice();
-    const tx = await this.contractAbstraction.mint(voucher, { value: mintPrice });
+    const tx = await this.contractAbstraction.mint(voucher, tokenUri, { value: mintPrice });
     return parseTransactionData(tx);
   }
 
-  public async mintAndWait(voucher: MintVoucher): Promise<MinedTransactionData> {
-    const tx = await this.mint(voucher);
+  public async mintWithUriAndWait(voucher: NftMintVoucher, tokenUri:string): Promise<MinedTransactionData> {
+    const tx = await this.mintWithUri(voucher, tokenUri);
+    const mined = await tx.wait();
+    return parseMinedTransactionData(mined);
+  }
+
+  public async isTransferrable(): Promise<boolean> {
+    const isTransferrable = await this.contractAbstraction.isTransferrable();
+    return isTransferrable;
+  }
+
+  public async royaltyBasis(): Promise<number> {
+    const royaltyBasis = await this.contractAbstraction.royaltyBasis();
+    return royaltyBasis;
+  }
+
+  public async setRoyalty(royaltyBasis:number): Promise<TransactionData> {
+    await this.onlyRole('DEFAULT_ADMIN_ROLE');
+    const tx = await this.contractAbstraction.setRoyalty(royaltyBasis);
+    return parseTransactionData(tx);
+  }
+
+  public async setRoyaltyAndWait(royaltyBasis:number): Promise<MinedTransactionData> {
+    const tx = await this.setRoyalty(royaltyBasis);
+    const mined = await tx.wait();
+    return parseMinedTransactionData(mined);
+  }
+
+  public async setIsTransferrable(isTransferrable:boolean): Promise<TransactionData> {
+    await this.onlyRole('DEFAULT_ADMIN_ROLE');
+    const tx = await this.contractAbstraction.setIsTransferrable(isTransferrable);
+    return parseTransactionData(tx);
+  }
+
+  public async setIsTransferrableAndWait(isTransferrable:boolean): Promise<MinedTransactionData> {
+    const tx = await this.setIsTransferrable(isTransferrable);
     const mined = await tx.wait();
     return parseMinedTransactionData(mined);
   }
 }
 
-applyMixins(NftWhitelisted, [Nft, AccessControl, Provider]);
+applyMixins(NftLazyMint, [Nft, AccessControl, Provider]);
 
-export default NftWhitelisted;
+export default NftLazyMint;

@@ -26,6 +26,18 @@ export default class AccessControl {
     return hasRole;
   }
 
+  public async getRoleMemberCount(role:string): Promise<number> {
+    const roleHash = utils.keccak256(utils.toUtf8Bytes(role));
+    const count = await this.contractAbstraction.getRoleMemberCount(roleHash);
+    return count.toNumber();
+  }
+
+  public async getRoleMemberByIndex(role:string, index:number): Promise<EthereumAddress> {
+    const roleHash = utils.keccak256(utils.toUtf8Bytes(role));
+    const member = await this.contractAbstraction.getRoleMember(roleHash, index);
+    return member;
+  }
+
   /* Transactions */
   public async grantRole(role:string, address:string): Promise<TransactionData> {
     isEthereumAddress(address);

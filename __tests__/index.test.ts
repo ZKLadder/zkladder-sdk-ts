@@ -1,13 +1,14 @@
-import App from '../src/index';
+/**
+ * JSDOM does not polyfill certain module dependencies like TextEncoder
+ * @jest-environment node
+ */
 
-jest.mock('../src/utils/infuraIpfs/client', () => (jest.fn()));
+import { MemberNft, Ipfs } from '../src/index';
 
 describe('ZKL parent class', () => {
-  const zkl = new App('12345', 'mockProvider');
-
   test('defines supported modules', () => {
-    expect(typeof zkl.nftWhitelisted).toBe('function');
-    expect(typeof zkl.ipfs).toBe('function');
-    // @TODO add further test cases here when building new modules
+    expect(typeof MemberNft).toBe('function');
+    expect(typeof Ipfs).toBe('function');
+    // @TODO add further test cases here when building new services
   });
 });

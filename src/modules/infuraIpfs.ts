@@ -3,8 +3,8 @@ import axios from 'axios';
 import FormData from 'form-data';
 import {
   IpfsApiResponse, AddFilesOptions, ProgressEvent, Dag,
-} from '../../interfaces/ipfs';
-import { HttpOptions } from '../../interfaces/api';
+} from '../interfaces/ipfs';
+import { HttpOptions } from '../interfaces/api';
 
 const cidTool = require('cid-tool');
 
@@ -138,8 +138,8 @@ class InfuraIpfs {
    */
   public getGatewayUrl(arg:string): string {
     const cid = this.detectIpfsUri(arg);
-    if (cid.length === 46 && cid.startsWith('Qm')) return `${cidTool.base32(cid)}.ipfs.infura-ipfs.io`;
-    return `${cid}.ipfs.infura-ipfs.io`;
+    if (cid.length === 46 && cid.startsWith('Qm')) return `https://${cidTool.base32(cid)}.ipfs.infura-ipfs.io`;
+    return `https://${cid}.ipfs.infura-ipfs.io`;
   }
 
   /**
@@ -196,7 +196,7 @@ class InfuraIpfs {
   public async addFiles(files: AddFilesOptions[], onUploadProgress?: (event:ProgressEvent)=>void): Promise<IpfsApiResponse[]> {
     const formData = new FormData();
     files.forEach(({ file, fileName }) => {
-      formData.append(fileName, file);
+      formData.append(fileName, file, fileName);
     });
 
     const response = await this.request({

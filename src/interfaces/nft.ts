@@ -6,6 +6,7 @@ interface NftTokenData {
   tokenId: number;
   tokenUri: string;
   owner: EthereumAddress;
+  metadata?: { [key: string]: any };
 }
 
 export { NftTokenData };

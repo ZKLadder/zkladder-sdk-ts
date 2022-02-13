@@ -13,4 +13,10 @@ interface GetContractABIOptions {
   id: string
 }
 
-export { HttpOptions, GetContractABIOptions };
+interface GetNftMintVoucherOptions {
+  contractAddress: string,
+  userAddress: string,
+  chainId: number
+}
+
+export { HttpOptions, GetContractABIOptions, GetNftMintVoucherOptions };

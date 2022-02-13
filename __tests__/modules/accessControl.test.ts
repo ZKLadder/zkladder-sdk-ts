@@ -80,6 +80,34 @@ describe('AccessControl class', () => {
     expect(result).toEqual('0xrole_admin');
   });
 
+  test('getRoleMemberCount correctly calls dependencies and returns response', async () => {
+    mockUtf8Bytes.mockReturnValueOnce('MOCKBYTES');
+    mockKeccak256.mockReturnValueOnce('0xMOCKROLE');
+    ethersAccessControlAbstraction.getRoleMemberCount.mockResolvedValueOnce({ toNumber: () => (35) });
+
+    const result = await accessControlWrapper.getRoleMemberCount('MOCK_ROLE');
+
+    expect(mockUtf8Bytes).toHaveBeenCalledWith('MOCK_ROLE');
+    expect(mockKeccak256).toHaveBeenCalledWith('MOCKBYTES');
+    expect(ethersAccessControlAbstraction.getRoleMemberCount).toHaveBeenCalledWith(
+      '0xMOCKROLE',
+    );
+    expect(result).toEqual(35);
+  });
+
+  test('getRoleMemberByIndex correctly calls dependencies and returns response', async () => {
+    mockUtf8Bytes.mockReturnValueOnce('MOCKBYTES');
+    mockKeccak256.mockReturnValueOnce('0xMOCKROLE');
+    ethersAccessControlAbstraction.getRoleMember.mockResolvedValueOnce('0xuser');
+
+    const result = await accessControlWrapper.getRoleMemberByIndex('MOCK_ROLE', 10);
+
+    expect(mockUtf8Bytes).toHaveBeenCalledWith('MOCK_ROLE');
+    expect(mockKeccak256).toHaveBeenCalledWith('MOCKBYTES');
+    expect(ethersAccessControlAbstraction.getRoleMember).toHaveBeenCalledWith('0xMOCKROLE', 10);
+    expect(result).toEqual('0xuser');
+  });
+
   test('grantRole correctly calls dependencies and returns response', async () => {
     mockUtf8Bytes.mockReturnValueOnce('MOCKBYTES');
     mockKeccak256.mockReturnValueOnce('0xMOCKROLE');

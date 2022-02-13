@@ -1,7 +1,8 @@
 import { providers } from 'ethers';
+import { EthereumAddress } from '../../src/interfaces/address';
 import Provider from '../../src/modules/provider';
 
-// Extend ProviderWrapper and unit test its methods
+// Extend Provider class and unit test its protected methods
 class ProviderWrapper extends Provider {
   protected readonly ethersProvider: providers.Web3Provider;
 
@@ -16,6 +17,14 @@ class ProviderWrapper extends Provider {
 
   public async getPrimaryAccount() {
     return super.getPrimaryAccount();
+  }
+
+  public async getChainId() {
+    return super.getChainId();
+  }
+
+  public async signTypedData(data:string) {
+    return super.signTypedData(data);
   }
 }
 
@@ -54,5 +63,27 @@ describe('NftEnumerable class', () => {
     mockProvider.send.mockResolvedValueOnce([]);
 
     await expect(providerWrapper.getPrimaryAccount()).rejects.toStrictEqual(new Error('No primary account'));
+  });
+
+  test('getChainId correctly calls dependencies and returns results', async () => {
+    mockProvider.send.mockResolvedValueOnce('0x1');
+
+    const result = await providerWrapper.getChainId();
+
+    expect(mockProvider.send).toHaveBeenCalledWith('eth_chainId', []);
+    expect(result).toStrictEqual(1);
+  });
+
+  test('signTypeData correctly calls dependencies and returns results', async () => {
+    jest.spyOn(providerWrapper, 'getPrimaryAccount').mockImplementation(() => Promise.resolve('0x123456789' as EthereumAddress));
+    mockProvider.send.mockResolvedValueOnce('0xSIGNEDDATA');
+
+    const result = await providerWrapper.signTypedData('testdata');
+
+    expect(mockProvider.send).toHaveBeenCalledWith('eth_signTypedData_v4', [
+      '0x123456789',
+      'testdata',
+    ]);
+    expect(result).toStrictEqual('0xSIGNEDDATA');
   });
 });

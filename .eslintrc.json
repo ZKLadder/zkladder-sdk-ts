@@ -11,19 +11,30 @@
     "parserOptions": {
         "ecmaVersion": 2021,
         "sourceType": "module",
-        "project":"./tsconfig.eslint.json"
+        "project": "./tsconfig.eslint.json"
     },
     "plugins": [
         "@typescript-eslint"
     ],
     "rules": {
         "linebreak-style": 0,
-        "max-len": ["warn", 130, {
-            "ignoreUrls": true,
-            "ignoreComments": true,
-            "ignoreRegExpLiterals": true,
-            "ignoreStrings": true,
-            "ignoreTemplateLiterals": true
-          }]
+        "max-len": [
+            "warn",
+            130,
+            {
+                "ignoreUrls": true,
+                "ignoreComments": true,
+                "ignoreRegExpLiterals": true,
+                "ignoreStrings": true,
+                "ignoreTemplateLiterals": true
+            }
+        ],
+        "no-underscore-dangle": [
+            "error",
+            {
+                "enforceInMethodNames": false,
+                "allowAfterThis": true
+            }
+        ]
     }
 }

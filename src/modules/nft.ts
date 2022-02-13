@@ -2,7 +2,6 @@ import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
 import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
-import { NftTokenData } from '../interfaces/nft';
 
 /**
  * Adds support for base ERC-721 defined functionality
@@ -53,28 +52,6 @@ export default class Nft {
   public async supportsInterface(interfaceId: string) : Promise<boolean> {
     const supportsInterface = await this.contractAbstraction.supportsInterface(interfaceId);
     return supportsInterface;
-  }
-
-  public async getToken(tokenId:number): Promise<NftTokenData> {
-    const tokenUri = await this.tokenUri(tokenId);
-    const owner = await this.ownerOf(tokenId);
-    return { tokenId, tokenUri, owner };
-  }
-
-  public async getAllTokens(): Promise<NftTokenData[]> {
-    const total = await this.totalSupply();
-    const promises = [];
-    for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
-      promises.push(this.getToken(tokenIndex));
-    }
-    const results = await Promise.all(promises);
-    return results;
-  }
-
-  public async getAllTokensOwnedBy(owner:string): Promise<NftTokenData[]> {
-    isEthereumAddress(owner);
-    const allTokens = await this.getAllTokens();
-    return allTokens.filter((token) => (token.owner === owner));
   }
 
   /**
