@@ -1,6 +1,7 @@
 import {
   providers, Contract, ContractFactory,
 } from 'ethers';
+import axios from 'axios';
 import InfuraIpfs from '../modules/infuraIpfs';
 import NftLazyMint from '../modules/nftLazyMint';
 import { NftConstructorArgs, NftDeploymentArgs, NftMintVoucher } from '../interfaces/nftLazyMint';
@@ -29,7 +30,8 @@ export default class MemberNft extends NftLazyMint {
     } = options;
 
     this.address = isEthereumAddress(address);
-    this.ethersProvider = new providers.Web3Provider(provider);
+    // Account for ethers JsonRpcProvider passed in as param
+    this.ethersProvider = provider.connection ? provider : new providers.Web3Provider(provider);
     this.ipfsModule = new InfuraIpfs(infuraIpfsProjectId, infuraIpfsProjectSecret);
   }
 
@@ -113,8 +115,8 @@ export default class MemberNft extends NftLazyMint {
     const owner = await this.ownerOf(tokenId);
     const metadataUrl = this.ipfsModule.getGatewayUrl(tokenUri);
     // @TODO Potentially refactor to use ipfs /cat
-    const response = await fetch(metadataUrl);
-    const metadata = await response.json();
+    const response = await axios.get(metadataUrl);
+    const metadata = response.data;
     return {
       tokenId, tokenUri, owner, metadata,
     };

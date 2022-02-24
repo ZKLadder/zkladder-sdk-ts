@@ -31,11 +31,9 @@ jest.mock('../../src/utils/contract/conversions', () => ({
 
 jest.mock('../../src/utils/vouchers/nftVoucher', () => (jest.fn()));
 
-Object.defineProperty(window, 'fetch', {
-  configurable: true,
-  writable: true,
-  value: jest.fn(() => ({ json: () => ({ mock: 'metadata' }) })),
-});
+jest.mock('axios', () => ({
+  get: jest.fn(() => ({ data: { mock: 'metadata' } })),
+}));
 
 const setupParams = {
   provider: 'mockProvider',
