@@ -27,8 +27,11 @@ export default class Provider {
 
   protected async signTypedData(data:string) {
     const primaryAcount = await this.getPrimaryAccount();
+
+    const method = this.ethersProvider.provider.isMetaMask ? 'eth_signTypedData_v4' : 'eth_signTypedData';
+
     const signature = await this.ethersProvider.send(
-      'eth_signTypedData_v4',
+      method,
       [
         primaryAcount,
         data,

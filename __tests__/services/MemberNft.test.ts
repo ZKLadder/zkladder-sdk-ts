@@ -1,4 +1,6 @@
-import { providers, Contract, ContractFactory } from 'ethers';
+import {
+  providers, Contract, ContractFactory, Signer,
+} from 'ethers';
 import MemberNft from '../../src/services/memberNft';
 import getContractABI from '../../src/utils/api/getContractABI';
 import getNftMintVoucher from '../../src/utils/api/getNftMintVoucher';
@@ -15,6 +17,7 @@ jest.mock('ethers', () => ({
   },
   Contract: jest.fn(),
   ContractFactory: jest.fn(),
+  Signer: { isSigner: jest.fn() },
 }));
 jest.mock('../../src/modules/infuraIpfs', () => (jest.fn(() => ({
   addFiles: () => ([{ Hash: 'QMmockcid' }]),
@@ -35,17 +38,11 @@ jest.mock('axios', () => ({
   get: jest.fn(() => ({ data: { mock: 'metadata' } })),
 }));
 
-const setupParams = {
-  provider: 'mockProvider',
-  address: '0x123456789',
-  infuraIpfsProjectId: 'mockId',
-  infuraIpfsProjectSecret: 'mockSecret',
-};
-
 const mockGetContractAbi = getContractABI as jest.Mocked<any>;
 const mockGetNftMintVoucher = getNftMintVoucher as jest.Mocked<any>;
 const mockProviders = providers as jest.Mocked<any>;
 const mockContract = Contract as jest.Mocked<any>;
+const mockSigner = Signer as jest.Mocked<any>;
 const mockContractFactory = ContractFactory as jest.Mocked<any>;
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransactionData = parseTransactionData as jest.Mocked<any>;
@@ -53,15 +50,41 @@ const mockParseMinedTransactionData = parseMinedTransactionData as jest.Mocked<a
 const mockNftVoucher = nftVoucher as jest.Mocked<any>;
 
 describe('MemberNft service tests', () => {
-  mockProviders.Web3Provider.mockReturnValue({ send: jest.fn(), getSigner: () => ('mockSigner') });
+  const mockProvider = { send: jest.fn(), getSigner: jest.fn(() => ('mockSigner')) };
+
+  mockProviders.Web3Provider.mockReturnValue(mockProvider);
   mockIsEthereumAddress.mockReturnValue('0x123456789');
-  test('setup correctly calls dependencies when instantiating nft class', async () => {
+
+  const setupParams = {
+    provider: { provider: mockProvider },
+    address: '0x123456789',
+    infuraIpfsProjectId: 'mockId',
+    infuraIpfsProjectSecret: 'mockSecret',
+  };
+
+  test('setup correctly calls dependencies when instantiating MemberNft with ethers Wallet', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockSigner.isSigner.mockReturnValueOnce(true);
     const nft = await MemberNft.setup(setupParams);
 
-    expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
+    expect(mockProviders.Web3Provider).toHaveBeenCalledTimes(0);
+    expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
+    expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', { provider: mockProvider });
+    expect(nft instanceof MemberNft).toBe(true);
+    mockSupportsInterface.mockRestore();
+  });
+
+  test('setup correctly calls dependencies when instantiating MemberNft with EIP-1193 Provider', async () => {
+    const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
+    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
+    mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockSigner.isSigner.mockReturnValueOnce(false);
+    const nft = await MemberNft.setup(setupParams);
+
+    expect(mockProviders.Web3Provider).toHaveBeenCalledWith({ provider: mockProvider });
+    expect(mockProvider.getSigner).toHaveBeenCalledTimes(1);
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockSigner');
     expect(nft instanceof MemberNft).toBe(true);
     mockSupportsInterface.mockRestore();
@@ -100,7 +123,7 @@ describe('MemberNft service tests', () => {
     mockSupportsInterface.mockRestore();
   });
 
-  test('deploy function correctly calls dependencies and returns result', async () => {
+  test('deploy function correctly calls dependencies and returns result with ethers Wallet', async () => {
     const mockDeploy = jest.fn(() => ({
       address: 'newcontractaddress',
       deployTransaction: 'mockDeployTransaction',
@@ -110,6 +133,39 @@ describe('MemberNft service tests', () => {
       deploy: mockDeploy,
     }));
     mockParseTransactionData.mockReturnValue({ mock: 'result' });
+    mockSigner.isSigner.mockReturnValueOnce(true);
+
+    const nft = await MemberNft.deploy({
+      provider: 'mockProvider',
+      name: 'ZKLTest',
+      symbol: 'MOCK',
+      baseUri: 'mockUri',
+      beneficiary: '0xuser',
+    });
+
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xuser');
+    expect(mockGetContractAbi).toHaveBeenCalledWith({ id: '3' });
+    expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockProvider');
+    expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'mockUri', '0xuser');
+    expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
+    expect(mockParseTransactionData).toHaveBeenCalledWith('mockDeployTransaction');
+    expect(nft).toStrictEqual({
+      address: 'newcontractaddress',
+      transaction: { mock: 'result' },
+    });
+  });
+
+  test('deploy function correctly calls dependencies and returns result with EIP-1193 Provider', async () => {
+    const mockDeploy = jest.fn(() => ({
+      address: 'newcontractaddress',
+      deployTransaction: 'mockDeployTransaction',
+    }));
+    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
+    mockContractFactory.mockImplementation(() => ({
+      deploy: mockDeploy,
+    }));
+    mockParseTransactionData.mockReturnValue({ mock: 'result' });
+    mockSigner.isSigner.mockReturnValueOnce(false);
 
     const nft = await MemberNft.deploy({
       provider: 'mockProvider',
@@ -124,6 +180,8 @@ describe('MemberNft service tests', () => {
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockSigner');
     expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'mockUri', '0xuser');
     expect(mockParseTransactionData).toHaveBeenCalledWith('mockDeployTransaction');
+    expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
+    expect(mockProvider.getSigner).toHaveBeenCalledTimes(1);
     expect(nft).toStrictEqual({
       address: 'newcontractaddress',
       transaction: { mock: 'result' },
@@ -221,59 +279,59 @@ describe('MemberNft service tests', () => {
       tokenId: 3, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
     }]);
   });
-});
 
-test('signMintVoucher function correctly calls dependencies and returns result', async () => {
-  const memberNft = await MemberNft.setup(setupParams);
-  jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
-  jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKZKL')));
-  jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(10)));
-  jest.spyOn(memberNft as any, 'getPrimaryAccount').mockImplementationOnce(() => (Promise.resolve(['0x12345'])));
-  jest.spyOn(memberNft, 'signTypedData' as any).mockImplementation(() => ('0xsignedData'));
-  jest.spyOn(memberNft as any, 'onlyRole').mockImplementation(() => (true));
-  mockNftVoucher.mockReturnValue({ mock: 'voucher' });
+  test('signMintVoucher function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNft.setup(setupParams);
+    jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
+    jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKZKL')));
+    jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(10)));
+    jest.spyOn(memberNft as any, 'getPrimaryAccount').mockImplementationOnce(() => (Promise.resolve(['0x12345'])));
+    jest.spyOn(memberNft, 'signTypedData' as any).mockImplementation(() => ('0xsignedData'));
+    jest.spyOn(memberNft as any, 'onlyRole').mockImplementation(() => (true));
+    mockNftVoucher.mockReturnValue({ mock: 'voucher' });
 
-  const result = await memberNft.signMintVoucher('0xuser123', 5);
+    const result = await memberNft.signMintVoucher('0xuser123', 5);
 
-  expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 15, '0xuser123');
-  expect(result).toStrictEqual({ balance: 15, minter: '0xuser123', signature: '0xsignedData' });
-});
+    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 15, '0xuser123');
+    expect(result).toStrictEqual({ balance: 15, minter: '0xuser123', signature: '0xsignedData' });
+  });
 
-test('getMintVoucher function correctly calls dependencies and returns result', async () => {
-  const memberNft = await MemberNft.setup(setupParams);
-  jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
-  mockGetNftMintVoucher.mockResolvedValue({ mock: 'voucher' });
-  const voucher = await memberNft.getMintVoucher('0xuser12345');
+  test('getMintVoucher function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNft.setup(setupParams);
+    jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
+    mockGetNftMintVoucher.mockResolvedValue({ mock: 'voucher' });
+    const voucher = await memberNft.getMintVoucher('0xuser12345');
 
-  expect(mockGetNftMintVoucher).toHaveBeenCalledWith({ contractAddress: '0x123456789', userAddress: '0xuser12345', chainId: '1' });
-  expect(voucher).toStrictEqual({ mock: 'voucher' });
-});
+    expect(mockGetNftMintVoucher).toHaveBeenCalledWith({ contractAddress: '0x123456789', userAddress: '0xuser12345', chainId: '1' });
+    expect(voucher).toStrictEqual({ mock: 'voucher' });
+  });
 
-test('mint function correctly calls dependencies and returns result', async () => {
-  const memberNft = await MemberNft.setup(setupParams);
-  jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
-  jest.spyOn(memberNft as any, 'mintWithUri').mockImplementationOnce(() => (Promise.resolve({ mock: 'result' })));
+  test('mint function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNft.setup(setupParams);
+    jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
+    jest.spyOn(memberNft as any, 'mintWithUri').mockImplementationOnce(() => (Promise.resolve({ mock: 'result' })));
 
-  const voucher = { balance: 15, minter: '0xuser123', signature: '0xsignedData' };
-  const mintTx = await memberNft.mint(voucher, { test: 'metadata' });
+    const voucher = { balance: 15, minter: '0xuser123', signature: '0xsignedData' };
+    const mintTx = await memberNft.mint(voucher, { test: 'metadata' });
 
-  expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
-  expect((memberNft as any).mintWithUri).toHaveBeenCalledWith(voucher, 'ipfs://QMmockcid');
-  expect(mintTx).toStrictEqual({ mock: 'result' });
-});
+    expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
+    expect((memberNft as any).mintWithUri).toHaveBeenCalledWith(voucher, 'ipfs://QMmockcid');
+    expect(mintTx).toStrictEqual({ mock: 'result' });
+  });
 
-test('mintAndWait function correctly calls dependencies and returns result', async () => {
-  const memberNft = await MemberNft.setup(setupParams);
-  const wait = jest.fn();
-  const tx = { wait };
+  test('mintAndWait function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNft.setup(setupParams);
+    const wait = jest.fn();
+    const tx = { wait };
 
-  jest.spyOn(memberNft, 'mint').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-  mockParseMinedTransactionData.mockReturnValueOnce({ transaction: 'result' });
+    jest.spyOn(memberNft, 'mint').mockImplementationOnce(() => (Promise.resolve(tx) as any));
+    mockParseMinedTransactionData.mockReturnValueOnce({ transaction: 'result' });
 
-  const voucher = { balance: 15, minter: '0xuser123', signature: '0xsignedData' };
-  const result = await memberNft.mintAndWait(voucher, { mock: 'data' });
+    const voucher = { balance: 15, minter: '0xuser123', signature: '0xsignedData' };
+    const result = await memberNft.mintAndWait(voucher, { mock: 'data' });
 
-  expect(memberNft.mint).toHaveBeenCalledWith(voucher, { mock: 'data' });
-  expect(wait).toHaveBeenCalledTimes(1);
-  expect(result).toEqual({ transaction: 'result' });
+    expect(memberNft.mint).toHaveBeenCalledWith(voucher, { mock: 'data' });
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ transaction: 'result' });
+  });
 });

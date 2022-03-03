@@ -1,5 +1,5 @@
 import {
-  providers, Contract, ContractFactory,
+  providers, Contract, ContractFactory, Signer,
 } from 'ethers';
 import axios from 'axios';
 import InfuraIpfs from '../modules/infuraIpfs';
@@ -19,6 +19,8 @@ export default class MemberNft extends NftLazyMint {
 
   protected readonly ethersProvider: providers.Web3Provider;
 
+  protected readonly ethersSigner: Signer;
+
   private readonly ipfsModule: InfuraIpfs;
 
   constructor(guard:any, options: NftConstructorArgs) {
@@ -30,14 +32,21 @@ export default class MemberNft extends NftLazyMint {
     } = options;
 
     this.address = isEthereumAddress(address);
-    // Account for ethers JsonRpcProvider passed in as param
-    this.ethersProvider = provider.connection ? provider : new providers.Web3Provider(provider);
+
+    if (Signer.isSigner(provider)) { // ethers Wallet provided
+      this.ethersProvider = provider.provider as providers.Web3Provider;
+      this.ethersSigner = provider;
+    } else { // EIP-1193 compliant object provided
+      this.ethersProvider = new providers.Web3Provider(provider);
+      this.ethersSigner = this.ethersProvider.getSigner();
+    }
+
     this.ipfsModule = new InfuraIpfs(infuraIpfsProjectId, infuraIpfsProjectSecret);
   }
 
   /**
    * Creates a new instance of MemberNft at a specified address. Use this function instead of direct instantiation
-   * @param options.provider EIP-1193 compatible provider instance
+   * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
    * @param options.address Address of MemberNft contract to connect to
    * @param options.infuraIpfsProjectId Infura IPFS project ID. ZKL tech team will provide this value
    * @param options.infuraIpfsProjectSecret Infura IPFS project secret. ZKL tech team will provide this value
@@ -46,14 +55,18 @@ export default class MemberNft extends NftLazyMint {
   public static async setup(options: NftConstructorArgs) {
     const whitelistedNftDrop = new this(constructorGuard, options);
     const { abi } = await getContractABI({ id: '3' });
-    const contractAbstraction = new Contract(options.address, abi, whitelistedNftDrop.ethersProvider.getSigner());
+    const contractAbstraction = new Contract(
+      options.address,
+      abi,
+      whitelistedNftDrop.ethersSigner,
+    );
     Object.assign(whitelistedNftDrop, { contractAbstraction });
     return whitelistedNftDrop;
   }
 
   /**
    * Deploys a new MemberNft smart contract to the currently connected chain
-   * @param options.provider EIP-1193 compatible provider instance
+   * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
    * @param options.name Name value of your newly deploy MemberNft smart contract
    * @param options.name Symbol value of your newly deploy MemberNft smart contract, should it ever trade on a market place.
    * @param options.baseUri baseUri value of your newly deploy MemberNft smart contract
@@ -67,7 +80,8 @@ export default class MemberNft extends NftLazyMint {
 
     isEthereumAddress(beneficiary);
     const { abi, bytecode } = await getContractABI({ id: '3' });
-    const factory = new ContractFactory(abi, bytecode, new providers.Web3Provider(provider).getSigner());
+    const signer = Signer.isSigner(provider) ? provider : new providers.Web3Provider(provider).getSigner();
+    const factory = new ContractFactory(abi, bytecode, signer);
     const { address, deployTransaction } = await factory.deploy(name, symbol, baseUri, beneficiary);
 
     return {

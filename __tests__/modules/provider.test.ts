@@ -30,6 +30,7 @@ class ProviderWrapper extends Provider {
 
 const mockProvider = {
   send: jest.fn(),
+  provider: {},
 } as jest.Mocked<any>;
 
 describe('NftEnumerable class', () => {
@@ -74,13 +75,28 @@ describe('NftEnumerable class', () => {
     expect(result).toStrictEqual(1);
   });
 
-  test('signTypeData correctly calls dependencies and returns results', async () => {
+  test('signTypeData correctly calls dependencies and returns results with metamask provider', async () => {
     jest.spyOn(providerWrapper, 'getPrimaryAccount').mockImplementation(() => Promise.resolve('0x123456789' as EthereumAddress));
     mockProvider.send.mockResolvedValueOnce('0xSIGNEDDATA');
+    mockProvider.provider.isMetaMask = true;
 
     const result = await providerWrapper.signTypedData('testdata');
 
     expect(mockProvider.send).toHaveBeenCalledWith('eth_signTypedData_v4', [
+      '0x123456789',
+      'testdata',
+    ]);
+    expect(result).toStrictEqual('0xSIGNEDDATA');
+  });
+
+  test('signTypeData correctly calls dependencies and returns results with non-metamask provider', async () => {
+    jest.spyOn(providerWrapper, 'getPrimaryAccount').mockImplementation(() => Promise.resolve('0x123456789' as EthereumAddress));
+    mockProvider.send.mockResolvedValueOnce('0xSIGNEDDATA');
+    mockProvider.provider.isMetaMask = false;
+
+    const result = await providerWrapper.signTypedData('testdata');
+
+    expect(mockProvider.send).toHaveBeenCalledWith('eth_signTypedData', [
       '0x123456789',
       'testdata',
     ]);
