@@ -2,16 +2,33 @@ type Role = 'DEFAULT_ADMIN_ROLE' | 'MINTER_ROLE';
 
 interface NftMintVoucher {
   balance:number,
+  salePrice:number,
   minter:string,
   signature:string
 }
 
+interface CollectionRole {
+  id:string,
+  name:string,
+  description:string,
+  price:number
+}
+
 interface NftDeploymentArgs {
   provider:any,
-  name:string,
-  symbol:string,
-  baseUri: string,
-  beneficiary: string
+  collectionData:{
+    name:string,
+    symbol:string,
+    beneficiaryAddress: string,
+    image?:string,
+    description?:string,
+    script?:string,
+    roles: CollectionRole[],
+  }
+  infuraIpfs:{
+    projectId:string,
+    projectSecret:string
+  }
 }
 
 interface NftConstructorArgs{
@@ -22,5 +39,5 @@ interface NftConstructorArgs{
 }
 
 export {
-  Role, NftMintVoucher, NftDeploymentArgs, NftConstructorArgs,
+  Role, NftMintVoucher, NftDeploymentArgs, NftConstructorArgs, CollectionRole,
 };

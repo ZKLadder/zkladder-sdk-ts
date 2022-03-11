@@ -2,9 +2,7 @@ import { providers, Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
 import { Role, NftMintVoucher } from '../interfaces/nftLazyMint';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import {
-  parseTransactionData, parseMinedTransactionData, ethToWei, weiToEth,
-} from '../utils/contract/conversions';
+import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
 import applyMixins from '../utils/mixins/applyMixins';
 import Nft from './nft';
 import AccessControl from './accessControl';
@@ -31,22 +29,20 @@ class NftLazyMint {
     return beneficiary;
   }
 
-  public async salePrice(): Promise<number> {
-    const salePrice = await this.contractAbstraction.salePrice();
-    return weiToEth(salePrice);
+  public async collectionDataUri(): Promise<string> {
+    const collectionDataUri = await this.contractAbstraction.collectionDataUri();
+    return collectionDataUri;
   }
 
   /* Transactions */
-  public async setSalePrice(newPrice:number): Promise<TransactionData> {
+  public async setCollectionDataUri(newCollectionDataUri:string): Promise<TransactionData> {
     await this.onlyRole('DEFAULT_ADMIN_ROLE');
-    const tx = await this.contractAbstraction.setSalePrice(
-      ethToWei(newPrice),
-    );
+    const tx = await this.contractAbstraction.setCollectionDataUri(newCollectionDataUri);
     return parseTransactionData(tx);
   }
 
-  public async setSalePriceAndWait(newPrice:number): Promise<MinedTransactionData> {
-    const tx = await this.setSalePrice(newPrice);
+  public async setCollectionDataUriAndWait(newCollectionDataUri:string): Promise<MinedTransactionData> {
+    const tx = await this.setCollectionDataUri(newCollectionDataUri);
     const mined = await tx.wait();
     return parseMinedTransactionData(mined);
   }
@@ -91,8 +87,7 @@ class NftLazyMint {
   }
 
   public async mintWithUri(voucher: NftMintVoucher, tokenUri:string): Promise<TransactionData> {
-    const mintPrice = await this.contractAbstraction.salePrice();
-    const tx = await this.contractAbstraction.mint(voucher, tokenUri, { value: mintPrice });
+    const tx = await this.contractAbstraction.mint(voucher, tokenUri, { value: voucher.salePrice });
     return parseTransactionData(tx);
   }
 

@@ -13,6 +13,7 @@ describe('getNftMintVoucher request wrapper', () => {
       contractAddress: '0xcontract',
       userAddress: '0xuser',
       chainId: 1,
+      roleId: 'mockRole',
     });
 
     expect(mockRequest).toHaveBeenCalledWith({
@@ -22,6 +23,7 @@ describe('getNftMintVoucher request wrapper', () => {
         contractAddress: '0xcontract',
         userAddress: '0xuser',
         chainId: 1,
+        roleId: 'mockRole',
       },
     });
   });
@@ -33,6 +35,7 @@ describe('getNftMintVoucher request wrapper', () => {
       contractAddress: '0xcontract',
       userAddress: '0xuser',
       chainId: 1,
+      roleId: 'mockRole',
     });
 
     expect(response).toStrictEqual('MockData');
@@ -46,6 +49,7 @@ describe('getNftMintVoucher request wrapper', () => {
         contractAddress: '0xcontract',
         userAddress: '0xuser',
         chainId: 1,
+        roleId: 'mockRole',
       });
       expect(true).toBe(false); // should be unreachable
     } catch (error) {
