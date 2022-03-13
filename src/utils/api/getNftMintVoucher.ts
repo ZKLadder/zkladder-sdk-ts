@@ -7,7 +7,9 @@ import { GetNftMintVoucherOptions } from '../../interfaces/api';
  */
 
 export default async (options: GetNftMintVoucherOptions) => {
-  const { contractAddress, userAddress, chainId } = options;
+  const {
+    contractAddress, userAddress, chainId, roleId,
+  } = options;
   const response = await request({
     method: 'get',
     url: '/v1/vouchers',
@@ -15,6 +17,7 @@ export default async (options: GetNftMintVoucherOptions) => {
       contractAddress,
       userAddress,
       chainId,
+      roleId,
     },
   });
   return response;
