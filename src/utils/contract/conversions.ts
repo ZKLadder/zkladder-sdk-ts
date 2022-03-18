@@ -69,7 +69,7 @@ const parseTransactionData = (txData: any): TransactionData => {
     gasCost: gweiToEth(gasLimit.mul(gasPrice)),
     txHash: hash,
     nonce,
-    value: value?.toNumber(),
+    value: weiToEth(value),
     wait,
   };
 };

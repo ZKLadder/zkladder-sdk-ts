@@ -1,12 +1,12 @@
 import {
-  providers, Contract, ContractFactory, Signer,
+  providers, Contract, ContractFactory, Signer, BigNumber,
 } from 'ethers';
 import MemberNft from '../../src/services/memberNft';
 import getContractABI from '../../src/utils/api/getContractABI';
 import getNftMintVoucher from '../../src/utils/api/getNftMintVoucher';
 import ethersNftWhitelistedAbstraction from '../mocks/ethersNftWhitelistedAbstraction';
 import { EthereumAddress, isEthereumAddress } from '../../src/interfaces/address';
-import { parseMinedTransactionData, parseTransactionData } from '../../src/utils/contract/conversions';
+import { parseMinedTransactionData, parseTransactionData, ethToWei } from '../../src/utils/contract/conversions';
 import nftVoucher from '../../src/utils/vouchers/nftVoucher';
 import { validateConstructorParams } from '../../src/utils/contract/validators';
 
@@ -19,6 +19,7 @@ jest.mock('ethers', () => ({
   Contract: jest.fn(),
   ContractFactory: jest.fn(),
   Signer: { isSigner: jest.fn() },
+  BigNumber: { from: jest.fn(() => ('mockBigNumber')) },
 }));
 jest.mock('../../src/modules/infuraIpfs', () => (jest.fn(() => ({
   addFiles: () => ([{ Hash: 'QMmockcid' }]),
@@ -31,6 +32,7 @@ jest.mock('../../src/interfaces/address', () => ({
 jest.mock('../../src/utils/contract/conversions', () => ({
   parseMinedTransactionData: jest.fn(),
   parseTransactionData: jest.fn(),
+  ethToWei: jest.fn(),
 }));
 
 jest.mock('../../src/utils/vouchers/nftVoucher', () => (jest.fn()));
@@ -52,6 +54,7 @@ const mockContractFactory = ContractFactory as jest.Mocked<any>;
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransactionData = parseTransactionData as jest.Mocked<any>;
 const mockParseMinedTransactionData = parseMinedTransactionData as jest.Mocked<any>;
+const mockEthToWei = ethToWei as jest.Mocked<any>;
 const mockNftVoucher = nftVoucher as jest.Mocked<any>;
 const mockValidateConstructorParams = validateConstructorParams as jest.Mocked<any>;
 
@@ -304,14 +307,14 @@ describe('MemberNft service tests', () => {
     jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKNAME')));
     jest.spyOn(memberNft, 'symbol').mockImplementationOnce(() => (Promise.resolve('MOCKSYMBOL')));
     jest.spyOn(memberNft, 'beneficiaryAddress').mockImplementationOnce(() => (Promise.resolve('0xtokenHolder' as EthereumAddress)));
-    jest.spyOn(memberNft, 'collectionDataUri').mockImplementationOnce(() => (Promise.resolve('https://mockNft.com')));
+    jest.spyOn(memberNft, 'contractUri').mockImplementationOnce(() => (Promise.resolve('https://mockNft.com')));
 
     const token = await memberNft.getCollectionMetadata();
 
     expect(memberNft.name).toHaveBeenCalledTimes(1);
     expect(memberNft.symbol).toHaveBeenCalledTimes(1);
     expect(memberNft.beneficiaryAddress).toHaveBeenCalledTimes(1);
-    expect(memberNft.collectionDataUri).toHaveBeenCalledTimes(1);
+    expect(memberNft.contractUri).toHaveBeenCalledTimes(1);
 
     expect(token).toStrictEqual({
       name: 'MOCKNAME',
@@ -390,6 +393,7 @@ describe('MemberNft service tests', () => {
     jest.spyOn(memberNft, 'getRoleData').mockImplementationOnce(() => (Promise.resolve({
       id: 'mockRole', name: 'mockRole', description: '', price: 100,
     })));
+    mockEthToWei.mockReturnValueOnce(BigNumber.from(100000000));
     jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(10)));
     jest.spyOn(memberNft as any, 'getPrimaryAccount').mockImplementationOnce(() => (Promise.resolve(['0x12345'])));
     jest.spyOn(memberNft, 'signTypedData' as any).mockImplementation(() => ('0xsignedData'));
@@ -398,9 +402,9 @@ describe('MemberNft service tests', () => {
 
     const result = await memberNft.signMintVoucher('0xuser123', 5, 'mockRole');
 
-    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 15, 100, '0xuser123');
+    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 15, BigNumber.from(100000000), '0xuser123');
     expect(result).toStrictEqual({
-      balance: 15, minter: '0xuser123', salePrice: 100, signature: '0xsignedData',
+      balance: 15, minter: '0xuser123', salePrice: BigNumber.from(100000000), signature: '0xsignedData',
     });
   });
 
@@ -423,7 +427,7 @@ describe('MemberNft service tests', () => {
     jest.spyOn(memberNft as any, 'getRoleData').mockImplementationOnce(jest.fn());
 
     const voucher = {
-      balance: 15, minter: '0xuser123', signature: '0xsignedData', salePrice: 100,
+      balance: 15, minter: '0xuser123', signature: '0xsignedData', salePrice: BigNumber.from(100),
     };
     const mintTx = await memberNft.mint(voucher, { roleId: 'mockRole', test: 'metadata' });
 
@@ -442,7 +446,7 @@ describe('MemberNft service tests', () => {
     mockParseMinedTransactionData.mockReturnValueOnce({ transaction: 'result' });
 
     const voucher = {
-      balance: 15, minter: '0xuser123', salePrice: 101, signature: '0xsignedData',
+      balance: 15, minter: '0xuser123', salePrice: BigNumber.from(101), signature: '0xsignedData',
     };
     const result = await memberNft.mintAndWait(voucher, { roleId: 'mockRole', mock: 'data' });
 

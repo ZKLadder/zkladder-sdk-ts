@@ -29,20 +29,20 @@ class NftLazyMint {
     return beneficiary;
   }
 
-  public async collectionDataUri(): Promise<string> {
-    const collectionDataUri = await this.contractAbstraction.collectionDataUri();
-    return collectionDataUri;
+  public async contractUri(): Promise<string> {
+    const contractUri = await this.contractAbstraction.contractURI();
+    return contractUri;
   }
 
   /* Transactions */
-  public async setCollectionDataUri(newCollectionDataUri:string): Promise<TransactionData> {
+  public async setContractUri(newContractUri:string): Promise<TransactionData> {
     await this.onlyRole('DEFAULT_ADMIN_ROLE');
-    const tx = await this.contractAbstraction.setCollectionDataUri(newCollectionDataUri);
+    const tx = await this.contractAbstraction.setContractUri(newContractUri);
     return parseTransactionData(tx);
   }
 
-  public async setCollectionDataUriAndWait(newCollectionDataUri:string): Promise<MinedTransactionData> {
-    const tx = await this.setCollectionDataUri(newCollectionDataUri);
+  public async setContractUriAndWait(newContractUri:string): Promise<MinedTransactionData> {
+    const tx = await this.setContractUri(newContractUri);
     const mined = await tx.wait();
     return parseMinedTransactionData(mined);
   }

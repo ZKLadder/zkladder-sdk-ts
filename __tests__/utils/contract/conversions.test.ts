@@ -42,7 +42,7 @@ describe('parseTransactionData', () => {
       gasCost: 875000000000,
       txHash: '0x0',
       nonce: 2,
-      value: 100,
+      value: weiToEth(BigNumber.from(100)),
       wait: 'mockFunction',
     });
   });

@@ -1,11 +1,11 @@
-import { ethToWei } from '../contract/conversions';
+import { BigNumber } from 'ethers';
 
 export default (
   chainId:number,
   contractName:string,
   contractAddress:string,
   balance:number,
-  salePrice:number,
+  salePrice:BigNumber,
   minter:string,
 ) => JSON.stringify({
   domain: {
@@ -16,7 +16,7 @@ export default (
   },
   message: {
     balance,
-    salePrice: ethToWei(salePrice),
+    salePrice: salePrice.toString(),
     minter,
   },
   types: {
