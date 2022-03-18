@@ -10,7 +10,9 @@ import {
 import getContractABI from '../utils/api/getContractABI';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
-import { parseMinedTransactionData, parseTransactionData } from '../utils/contract/conversions';
+import {
+  parseMinedTransactionData, parseTransactionData, ethToWei,
+} from '../utils/contract/conversions';
 import { NftTokenData } from '../interfaces/nft';
 import formatNftVoucher from '../utils/vouchers/nftVoucher';
 import { validateConstructorParams } from '../utils/contract/validators';
@@ -96,16 +98,16 @@ export default class MemberNft extends NftLazyMint {
     const ipfsModule = new InfuraIpfs(projectId, projectSecret);
     const file = new Blob([JSON.stringify(ipfsMetadata)], { type: 'application/json' });
     const response = await ipfsModule.addFiles([{ file, fileName: `${symbol}.json` }]);
-    const collectionDataUri = `ipfs://${response[0].Hash}`;
+    const contractUri = `ipfs://${response[0].Hash}`;
 
     // Validate constructor inputs
     const { abi, bytecode } = await getContractABI({ id: '3' });
-    validateConstructorParams(abi, [name, symbol, collectionDataUri, beneficiaryAddress]);
+    validateConstructorParams(abi, [name, symbol, contractUri, beneficiaryAddress]);
 
     // Create contract object and deploy
     const signer = Signer.isSigner(provider) ? provider : new providers.Web3Provider(provider).getSigner();
     const factory = new ContractFactory(abi, bytecode, signer);
-    const { address, deployTransaction } = await factory.deploy(name, symbol, collectionDataUri, beneficiaryAddress);
+    const { address, deployTransaction } = await factory.deploy(name, symbol, contractUri, beneficiaryAddress);
 
     return {
       address,
@@ -121,7 +123,7 @@ export default class MemberNft extends NftLazyMint {
     const name = await this.name();
     const symbol = await this.symbol();
     const beneficiaryAddress = await this.beneficiaryAddress();
-    const collectionUri = await this.collectionDataUri();
+    const collectionUri = await this.contractUri();
     const metadataUrl = this.ipfsModule.getGatewayUrl(collectionUri);
     const response = await axios.get(metadataUrl);
     const collectionData = response.data;
@@ -201,7 +203,8 @@ export default class MemberNft extends NftLazyMint {
     await this.onlyRole('MINTER_ROLE');
 
     const name = await this.name();
-    const { price: salePrice } = await this.getRoleData(roleId);
+    const { price } = await this.getRoleData(roleId);
+    const salePrice = ethToWei(price);
     const chainId = await this.getChainId();
     const balance = (await this.balanceOf(minter)) + quantity;
     const voucher = formatNftVoucher(chainId, name, this.address, balance, salePrice, minter);

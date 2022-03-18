@@ -1,10 +1,10 @@
 export default {
   // View functions
   beneficiaryAddress: jest.fn(),
-  collectionDataUri: jest.fn(),
+  contractURI: jest.fn(),
 
   // Transactions
-  setCollectionDataUri: jest.fn(),
+  setContractUri: jest.fn(),
   setBeneficiary: jest.fn(),
   transferOwnership: jest.fn(),
   mintTo: jest.fn(),

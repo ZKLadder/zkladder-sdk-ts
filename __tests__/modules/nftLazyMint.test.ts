@@ -62,40 +62,40 @@ describe('NftWhitelisted class', () => {
     expect(result).toEqual('0xbeneficiary');
   });
 
-  test('collectionDataUri correctly calls dependencies and returns results', async () => {
+  test('contractUri correctly calls dependencies and returns results', async () => {
     const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftWhitelistedAbstraction as any);
-    ethersNftWhitelistedAbstraction.collectionDataUri.mockResolvedValueOnce('ipfs://123456789');
+    ethersNftWhitelistedAbstraction.contractURI.mockResolvedValueOnce('ipfs://123456789');
 
-    const result = await nftWhitelisted.collectionDataUri();
+    const result = await nftWhitelisted.contractUri();
 
-    expect(ethersNftWhitelistedAbstraction.collectionDataUri).toHaveBeenCalledTimes(1);
+    expect(ethersNftWhitelistedAbstraction.contractURI).toHaveBeenCalledTimes(1);
     expect(result).toEqual('ipfs://123456789');
   });
 
-  test('setCollectionDataUri correctly calls dependencies and returns results', async () => {
+  test('setContractUri correctly calls dependencies and returns results', async () => {
     jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
     const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftWhitelistedAbstraction as any);
-    ethersNftWhitelistedAbstraction.setCollectionDataUri.mockResolvedValueOnce({});
+    ethersNftWhitelistedAbstraction.setContractUri.mockResolvedValueOnce({});
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
-    const result = await nftWhitelisted.setCollectionDataUri('ipfs://123456789');
+    const result = await nftWhitelisted.setContractUri('ipfs://123456789');
 
     expect((nftWhitelisted as any).onlyRole).toHaveBeenCalledWith('DEFAULT_ADMIN_ROLE');
-    expect(ethersNftWhitelistedAbstraction.setCollectionDataUri).toHaveBeenCalledWith('ipfs://123456789');
+    expect(ethersNftWhitelistedAbstraction.setContractUri).toHaveBeenCalledWith('ipfs://123456789');
     expect(result).toStrictEqual({ parsed: 'transaction' });
   });
 
-  test('setCollectionDataUriAndWait correctly calls dependencies and returns results', async () => {
+  test('setContractUriAndWait correctly calls dependencies and returns results', async () => {
     const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftWhitelistedAbstraction as any);
     const wait = jest.fn();
     const tx = { wait };
 
-    jest.spyOn(nftWhitelisted, 'setCollectionDataUri').mockImplementationOnce(() => (Promise.resolve(tx) as any));
+    jest.spyOn(nftWhitelisted, 'setContractUri').mockImplementationOnce(() => (Promise.resolve(tx) as any));
     mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
 
-    const result = await nftWhitelisted.setCollectionDataUriAndWait('ipfs://123456789');
+    const result = await nftWhitelisted.setContractUriAndWait('ipfs://123456789');
 
-    expect(nftWhitelisted.setCollectionDataUri).toHaveBeenCalledWith('ipfs://123456789');
+    expect(nftWhitelisted.setContractUri).toHaveBeenCalledWith('ipfs://123456789');
     expect(wait).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ transaction: 'result' });
   });

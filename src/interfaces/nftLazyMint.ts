@@ -1,8 +1,10 @@
+import { BigNumber } from 'ethers';
+
 type Role = 'DEFAULT_ADMIN_ROLE' | 'MINTER_ROLE';
 
 interface NftMintVoucher {
   balance:number,
-  salePrice:number,
+  salePrice:BigNumber,
   minter:string,
   signature:string
 }
