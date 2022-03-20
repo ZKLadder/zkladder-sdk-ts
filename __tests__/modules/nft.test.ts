@@ -90,15 +90,6 @@ describe('NftEnumerable class', () => {
     expect(result).toEqual('https://mockToken.com/3');
   });
 
-  test('baseUri correctly calls dependencies and returns results', async () => {
-    ethersNftAbstraction.baseUri.mockResolvedValueOnce('https://mockToken.com');
-
-    const result = await nftWrapper.baseUri();
-
-    expect(ethersNftAbstraction.baseUri).toHaveBeenCalledTimes(1);
-    expect(result).toEqual('https://mockToken.com');
-  });
-
   test('supportsInterface correctly calls dependencies and returns results', async () => {
     ethersNftAbstraction.supportsInterface.mockResolvedValueOnce(true);
 
