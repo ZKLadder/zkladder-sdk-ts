@@ -34,6 +34,11 @@ class NftLazyMint {
     return contractUri;
   }
 
+  public async baseUri(): Promise<string> {
+    const baseUri = await this.contractAbstraction.baseURI();
+    return baseUri;
+  }
+
   /* Transactions */
   public async setContractUri(newContractUri:string): Promise<TransactionData> {
     await this.onlyRole('DEFAULT_ADMIN_ROLE');
@@ -43,6 +48,18 @@ class NftLazyMint {
 
   public async setContractUriAndWait(newContractUri:string): Promise<MinedTransactionData> {
     const tx = await this.setContractUri(newContractUri);
+    const mined = await tx.wait();
+    return parseMinedTransactionData(mined);
+  }
+
+  public async setBaseUri(newBaseUri:string): Promise<TransactionData> {
+    await this.onlyRole('DEFAULT_ADMIN_ROLE');
+    const tx = await this.contractAbstraction.setBaseUri(newBaseUri);
+    return parseTransactionData(tx);
+  }
+
+  public async setBaseUriAndWait(newBaseUri:string): Promise<MinedTransactionData> {
+    const tx = await this.setBaseUri(newBaseUri);
     const mined = await tx.wait();
     return parseMinedTransactionData(mined);
   }

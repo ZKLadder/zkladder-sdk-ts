@@ -44,11 +44,6 @@ export default class Nft {
     return tokenUri;
   }
 
-  public async baseUri(): Promise<string> {
-    const baseUri = await this.contractAbstraction.baseUri();
-    return baseUri;
-  }
-
   public async supportsInterface(interfaceId: string) : Promise<boolean> {
     const supportsInterface = await this.contractAbstraction.supportsInterface(interfaceId);
     return supportsInterface;

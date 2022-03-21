@@ -9,7 +9,6 @@ export default {
   getApproved: jest.fn(),
   isApprovedForAll: jest.fn(),
   supportsInterface: jest.fn(),
-  baseUri: jest.fn(),
   tokenByIndex: jest.fn(),
   tokenOfOwnerByIndex: jest.fn(),
 
