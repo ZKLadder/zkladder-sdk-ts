@@ -33,13 +33,22 @@ interface NftDeploymentArgs {
   }
 }
 
-interface NftConstructorArgs{
-  provider:any,
+interface NftConstructorArgs {
+  provider?:any,
+  chainId?: number
   address:string,
   infuraIpfsProjectId:string,
   infuraIpfsProjectSecret:string
 }
 
+interface NftConstructorArgsFull extends NftConstructorArgs {
+  provider:any,
+}
+
+interface NftConstructorArgsReadOnly extends NftConstructorArgs {
+  chainId:number,
+}
+
 export {
-  Role, NftMintVoucher, NftDeploymentArgs, NftConstructorArgs, CollectionRole,
+  Role, NftMintVoucher, NftDeploymentArgs, NftConstructorArgsFull, NftConstructorArgsReadOnly, CollectionRole,
 };

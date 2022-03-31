@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import Ipfs from '../../src/modules/infuraIpfs';
+import Ipfs from '../../src/services/infuraIpfs';
 
 const cidTool = require('cid-tool');
 

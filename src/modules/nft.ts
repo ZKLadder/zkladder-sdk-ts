@@ -1,18 +1,18 @@
 import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
-import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
+import { TransactionData } from '../interfaces/transaction';
+import { parseTransactionData } from '../utils/contract/conversions';
 
 /**
- * Adds support for base ERC-721 defined functionality
+ * Adds query support for base ERC-721 defined functionality
  * https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721
+ * @remarks Module is read-only and does not support transactions
  */
-export default class Nft {
+class NftReadOnly {
   public readonly address: EthereumAddress;
 
-  protected readonly contractAbstraction: Contract;
+  protected contractAbstraction: Contract;
 
-  /* Read-Only Functions */
   public async name(): Promise<string> {
     const name = await this.contractAbstraction.name();
     return name;
@@ -71,8 +71,13 @@ export default class Nft {
     const isApprovedForAll = await this.contractAbstraction.isApprovedForAll(owner, operator);
     return isApprovedForAll;
   }
+}
 
-  /* Transactions */
+/**
+ * Adds full support for base ERC-721 defined functionality
+ * https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721
+ */
+class Nft extends NftReadOnly {
   /**
    * Transfers tokenId from the from address to the to address.
    * @remarks tokenId must be owned by the from address, or the from address must be approved to transfer tokenId
@@ -90,20 +95,6 @@ export default class Nft {
   }
 
   /**
-   * Transfers tokenId from the from address to the to address and waits for the transaction to be mined.
-   * @remarks tokenId must be owned by the from address, or the from address must be approved to transfer tokenId
-   * @param from
-   * @param to
-   * @param tokenId
-   * @returns Mined transaction data
-   */
-  public async safeTransferFromAndWait(from:string, to:string, tokenId:number): Promise<MinedTransactionData> {
-    const tx = await this.safeTransferFrom(from, to, tokenId);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
-
-  /**
    * Approve operator to transfer tokenId
    * @param operator
    * @param tokenId
@@ -113,18 +104,6 @@ export default class Nft {
     isEthereumAddress(operator);
     const tx = await this.contractAbstraction.approve(operator, tokenId);
     return parseTransactionData(tx);
-  }
-
-  /**
-   * Approve operator to transfer tokenId and wait for the transaction to be mined
-   * @param operator
-   * @param tokenId
-   * @returns Mined transaction data
-   */
-  public async approveAndWait(operator: string, tokenId:number): Promise<MinedTransactionData> {
-    const tx = await this.approve(operator, tokenId);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
   }
 
   /**
@@ -139,17 +118,6 @@ export default class Nft {
     const tx = await this.contractAbstraction.setApprovalForAll(operator, approved);
     return parseTransactionData(tx);
   }
-
-  /**
-   * Toggles approval for operater to transfer all tokens owned by transaction sender and waits for transaction to be mined
-   * @remarks Transaction sender will be the signer address provided at SDK instantiation
-   * @param operator
-   * @param approved
-   * @returns Transaction data
-   */
-  public async setApprovalForAllAndWait(operator: string, approved:boolean): Promise<MinedTransactionData> {
-    const tx = await this.setApprovalForAll(operator, approved);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
 }
+
+export { NftReadOnly, Nft };

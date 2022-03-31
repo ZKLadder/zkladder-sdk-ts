@@ -1,10 +1,9 @@
 import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../../src/interfaces/address';
-import NftEnumerable from '../../src/modules/nftEnumerable';
+import { NftEnumerableReadOnly } from '../../src/modules/nftEnumerable';
 import ethersNftEnumerableContractAbstraction from '../mocks/ethersNftEnumerableContractAbstraction';
 
-// Extend NftEnumerable and unit test its methods
-class NftEnumerableWrapper extends NftEnumerable {
+class NftEnumerableReadOnlyWrapper extends NftEnumerableReadOnly {
   protected readonly contractAbstraction: Contract;
 
   public readonly address: EthereumAddress;
@@ -38,7 +37,7 @@ jest.mock('../../src/utils/contract/conversions', () => ({
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 
 describe('NftEnumerable class', () => {
-  const nftEnumerableWrapper = new NftEnumerableWrapper(
+  const nftEnumerableWrapper = new NftEnumerableReadOnlyWrapper(
     '0x12345' as EthereumAddress,
     ethersNftEnumerableContractAbstraction as any,
   );

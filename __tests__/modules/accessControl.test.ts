@@ -1,10 +1,21 @@
 import { Contract, utils } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../../src/interfaces/address';
-import AccessControl from '../../src/modules/accessControl';
+import { AccessControlReadOnly, AccessControl } from '../../src/modules/accessControl';
 import ethersAccessControlAbstraction from '../mocks/ethersAccessControlAbstraction';
-import { parseTransactionData, parseMinedTransactionData } from '../../src/utils/contract/conversions';
+import { parseTransactionData } from '../../src/utils/contract/conversions';
 
-// Extend AccessControl and unit test its methods
+class AccessControlReadOnlyWrapper extends AccessControlReadOnly {
+  protected readonly contractAbstraction: Contract;
+
+  public readonly address: EthereumAddress;
+
+  constructor(address:EthereumAddress, contractAbstraction: Contract) {
+    super();
+    this.address = address;
+    this.contractAbstraction = contractAbstraction;
+  }
+}
+
 class AccessControlWrapper extends AccessControl {
   protected readonly contractAbstraction: Contract;
 
@@ -40,10 +51,9 @@ const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockKeccak256 = utils.keccak256 as jest.Mocked<any>;
 const mockUtf8Bytes = utils.toUtf8Bytes as jest.Mocked<any>;
 const mockParseTransaction = parseTransactionData as jest.Mocked<any>;
-const mockParseMinedTransaction = parseMinedTransactionData as jest.Mocked<any>;
 
-describe('AccessControl class', () => {
-  const accessControlWrapper = new AccessControlWrapper(
+describe('AccessControlReadOnly class', () => {
+  const accessControlWrapper = new AccessControlReadOnlyWrapper(
     '0x12345' as EthereumAddress,
     ethersAccessControlAbstraction as any,
   );
@@ -107,6 +117,13 @@ describe('AccessControl class', () => {
     expect(ethersAccessControlAbstraction.getRoleMember).toHaveBeenCalledWith('0xMOCKROLE', 10);
     expect(result).toEqual('0xuser');
   });
+});
+
+describe('AccessControl class', () => {
+  const accessControlWrapper = new AccessControlWrapper(
+    '0x12345' as EthereumAddress,
+    ethersAccessControlAbstraction as any,
+  );
 
   test('grantRole correctly calls dependencies and returns response', async () => {
     mockUtf8Bytes.mockReturnValueOnce('MOCKBYTES');
@@ -126,19 +143,6 @@ describe('AccessControl class', () => {
     expect(result).toEqual({ transaction: 'result' });
   });
 
-  test('grantRoleAndWait correctly calls dependencies and returns response', async () => {
-    const wait = jest.fn();
-    const tx = { wait };
-
-    jest.spyOn(accessControlWrapper, 'grantRole').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
-
-    const result = await accessControlWrapper.grantRoleAndWait('MOCK_ROLE', '0xsomeuser');
-
-    expect(wait).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ transaction: 'result' });
-  });
-
   test('revokeRole correctly calls dependencies and returns response', async () => {
     mockUtf8Bytes.mockReturnValueOnce('MOCKBYTES');
     mockKeccak256.mockReturnValueOnce('0xMOCKROLE');
@@ -154,19 +158,6 @@ describe('AccessControl class', () => {
       '0xMOCKROLE',
       '0xsomeuser',
     );
-    expect(result).toEqual({ transaction: 'result' });
-  });
-
-  test('revokeRoleAndWait correctly calls dependencies and returns response', async () => {
-    const wait = jest.fn();
-    const tx = { wait };
-
-    jest.spyOn(accessControlWrapper, 'revokeRole').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
-
-    const result = await accessControlWrapper.revokeRoleAndWait('MOCK_ROLE', '0xsomeuser');
-
-    expect(wait).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ transaction: 'result' });
   });
 });

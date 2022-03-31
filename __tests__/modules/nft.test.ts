@@ -1,10 +1,21 @@
 import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../../src/interfaces/address';
-import Nft from '../../src/modules/nft';
+import { NftReadOnly, Nft } from '../../src/modules/nft';
 import ethersNftAbstraction from '../mocks/ethersNftAbstraction';
-import { parseTransactionData, parseMinedTransactionData } from '../../src/utils/contract/conversions';
+import { parseTransactionData } from '../../src/utils/contract/conversions';
 
-// Extend NftEnumerable and unit test its methods
+class NftReadOnlyWrapper extends NftReadOnly {
+  protected readonly contractAbstraction: Contract;
+
+  public readonly address: EthereumAddress;
+
+  constructor(address:EthereumAddress, contractAbstraction: Contract) {
+    super();
+    this.address = address;
+    this.contractAbstraction = contractAbstraction;
+  }
+}
+
 class NftWrapper extends Nft {
   protected readonly contractAbstraction: Contract;
 
@@ -28,10 +39,9 @@ jest.mock('../../src/utils/contract/conversions', () => ({
 
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransaction = parseTransactionData as jest.Mocked<any>;
-const mockParseMinedTransaction = parseMinedTransactionData as jest.Mocked<any>;
 
-describe('NftEnumerable class', () => {
-  const nftWrapper = new NftWrapper(
+describe('NftReadOnly class', () => {
+  const nftWrapper = new NftReadOnlyWrapper(
     '0x12345' as EthereumAddress,
     ethersNftAbstraction as any,
   );
@@ -118,7 +128,13 @@ describe('NftEnumerable class', () => {
     expect(ethersNftAbstraction.isApprovedForAll).toHaveBeenCalledWith('0xowner', '0xoperator');
     expect(result).toEqual(true);
   });
+});
 
+describe('Nft class', () => {
+  const nftWrapper = new NftWrapper(
+    '0x12345' as EthereumAddress,
+    ethersNftAbstraction as any,
+  );
   test('safeTransferFrom correctly calls dependencies and returns results', async () => {
     ethersNftAbstraction['safeTransferFrom(address,address,uint256)'].mockResolvedValueOnce({ mock: 'result' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'result' });
@@ -130,20 +146,6 @@ describe('NftEnumerable class', () => {
     expect(ethersNftAbstraction['safeTransferFrom(address,address,uint256)']).toHaveBeenCalledWith('0xowner', '0xoperator', 3);
     expect(mockParseTransaction).toHaveBeenCalledWith({ mock: 'result' });
     expect(result).toEqual({ parsed: 'result' });
-  });
-
-  test('safeTransferFromAndWait correctly calls dependencies and returns results', async () => {
-    const wait = jest.fn();
-    const tx = { wait };
-
-    jest.spyOn(nftWrapper, 'safeTransferFrom').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
-
-    const result = await nftWrapper.safeTransferFromAndWait('0xowner', '0xoperator', 3);
-
-    expect(nftWrapper.safeTransferFrom).toHaveBeenCalledWith('0xowner', '0xoperator', 3);
-    expect(wait).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ transaction: 'result' });
   });
 
   test('approve correctly calls dependencies and returns results', async () => {
@@ -158,20 +160,6 @@ describe('NftEnumerable class', () => {
     expect(result).toEqual({ parsed: 'result' });
   });
 
-  test('approveAndWait correctly calls dependencies and returns results', async () => {
-    const wait = jest.fn();
-    const tx = { wait };
-
-    jest.spyOn(nftWrapper, 'approve').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
-
-    const result = await nftWrapper.approveAndWait('0xoperator', 3);
-
-    expect(nftWrapper.approve).toHaveBeenCalledWith('0xoperator', 3);
-    expect(wait).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ transaction: 'result' });
-  });
-
   test('setApprovalForAll correctly calls dependencies and returns results', async () => {
     ethersNftAbstraction.setApprovalForAll.mockResolvedValueOnce({ mock: 'result' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'result' });
@@ -182,19 +170,5 @@ describe('NftEnumerable class', () => {
     expect(ethersNftAbstraction.setApprovalForAll).toHaveBeenCalledWith('0xoperator', true);
     expect(mockParseTransaction).toHaveBeenCalledWith({ mock: 'result' });
     expect(result).toEqual({ parsed: 'result' });
-  });
-
-  test('setApprovalForAllAndWait correctly calls dependencies and returns results', async () => {
-    const wait = jest.fn();
-    const tx = { wait };
-
-    jest.spyOn(nftWrapper, 'setApprovalForAll').mockImplementationOnce(() => (Promise.resolve(tx) as any));
-    mockParseMinedTransaction.mockReturnValueOnce({ transaction: 'result' });
-
-    const result = await nftWrapper.setApprovalForAllAndWait('0xoperator', true);
-
-    expect(nftWrapper.setApprovalForAll).toHaveBeenCalledWith('0xoperator', true);
-    expect(wait).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ transaction: 'result' });
   });
 });
