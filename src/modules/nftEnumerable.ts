@@ -2,19 +2,20 @@ import { Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
 import { NftTokenData } from '../interfaces/nft';
 import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import Nft from './nft';
+import { NftReadOnly, Nft } from './nft';
 import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
+import applyMixins from '../utils/mixins/applyMixins';
 
 /**
- * Adds support for NFT's with the enumerable extension
+ * Adds query support for NFT's with the enumerable extension
  * https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Enumerable
+ * @remarks Module is read-only and does not support transactions
  */
-export default class NftEnumerable extends Nft {
+class NftEnumerableReadOnly extends NftReadOnly {
   public readonly address: EthereumAddress;
 
-  protected readonly contractAbstraction: Contract;
+  protected contractAbstraction: Contract;
 
-  /* Read-Only Functions */
   /**
    * Returns token data by index. Indexed from 0 ... totalSupply()
    * @param index
@@ -71,9 +72,19 @@ export default class NftEnumerable extends Nft {
     const results = await Promise.all(promises);
     return results;
   }
+}
 
-  /* Transactions */
-  // @TODO move these functions into their own module
+interface NftEnumerable extends NftEnumerableReadOnly, Nft {}
+
+/**
+ * Adds full support for NFT's with the enumerable extension
+ * https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#ERC721Enumerable
+ */
+class NftEnumerable {
+  public readonly address: EthereumAddress;
+
+  protected contractAbstraction: Contract;
+
   /**
    * Mints a new NFT owned by the signer address provided at SDK instantiation
    * @returns Transaction data
@@ -93,3 +104,7 @@ export default class NftEnumerable extends Nft {
     return parseMinedTransactionData(mined);
   }
 }
+
+applyMixins(NftEnumerable, [NftEnumerableReadOnly, Nft]);
+
+export { NftEnumerableReadOnly, NftEnumerable };

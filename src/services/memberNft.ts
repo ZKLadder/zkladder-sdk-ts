@@ -1,118 +1,55 @@
 import {
-  providers, Contract, ContractFactory, Signer,
+  providers, Contract, ContractFactory, Signer, ContractInterface, getDefaultProvider,
 } from 'ethers';
 import axios from 'axios';
-import InfuraIpfs from '../modules/infuraIpfs';
-import NftLazyMint from '../modules/nftLazyMint';
+import InfuraIpfs from './infuraIpfs';
+import { NftLazyMintReadOnly, NftLazyMint } from '../modules/nftLazyMint';
 import {
-  NftConstructorArgs, NftDeploymentArgs, NftMintVoucher, CollectionRole,
+  NftDeploymentArgs, NftMintVoucher, CollectionRole, NftConstructorArgsFull, NftConstructorArgsReadOnly,
 } from '../interfaces/nftLazyMint';
 import getContractABI from '../utils/api/getContractABI';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
-import {
-  parseMinedTransactionData, parseTransactionData, ethToWei,
-} from '../utils/contract/conversions';
+import { parseTransactionData, ethToWei } from '../utils/contract/conversions';
 import { NftTokenData } from '../interfaces/nft';
 import formatNftVoucher from '../utils/vouchers/nftVoucher';
 import { validateConstructorParams } from '../utils/contract/validators';
+import applyMixins from '../utils/mixins/applyMixins';
+import getNetworkById from '../constants/networks';
 
-const constructorGuard = { };
+type ReturnType<T> = T extends NftConstructorArgsFull ? MemberNft : MemberNftReadOnly;
 
-export default class MemberNft extends NftLazyMint {
+class MemberNftReadOnly extends NftLazyMintReadOnly {
   public readonly address: EthereumAddress;
 
-  protected readonly ethersProvider: providers.Web3Provider;
+  protected readonly ethersProvider: providers.BaseProvider;
 
-  protected readonly ethersSigner: Signer;
+  protected readonly ethersSigner?: Signer;
 
-  private readonly ipfsModule: InfuraIpfs;
+  protected readonly ipfsModule: InfuraIpfs;
 
-  constructor(guard:any, options: NftConstructorArgs) {
-    if (guard !== constructorGuard) throw new Error('Cannot call constructor directly; Use MemberNft.setUp function');
+  constructor(options: NftConstructorArgsReadOnly) {
     super();
 
     const {
-      address, provider, infuraIpfsProjectId, infuraIpfsProjectSecret,
+      address, provider, chainId, infuraIpfsProjectId, infuraIpfsProjectSecret,
     } = options;
-
-    this.address = isEthereumAddress(address);
-
-    if (Signer.isSigner(provider)) { // ethers Wallet provided
-      this.ethersProvider = provider.provider as providers.Web3Provider;
-      this.ethersSigner = provider;
-    } else { // EIP-1193 compliant object provided
-      this.ethersProvider = new providers.Web3Provider(provider);
-      this.ethersSigner = this.ethersProvider.getSigner();
-    }
 
     this.ipfsModule = new InfuraIpfs(infuraIpfsProjectId, infuraIpfsProjectSecret);
+    this.address = isEthereumAddress(address);
+
+    if (!provider && chainId) {
+      const { RPCEndpoint } = getNetworkById(chainId as any);
+      this.ethersProvider = getDefaultProvider(RPCEndpoint);
+    }
   }
 
-  /**
-   * Creates a new instance of MemberNft at a specified address. Use this function instead of direct instantiation
-   * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
-   * @param options.address Address of MemberNft contract to connect to
-   * @param options.infuraIpfsProjectId Infura IPFS project ID. ZKL tech team will provide this value
-   * @param options.infuraIpfsProjectSecret Infura IPFS project secret. ZKL tech team will provide this value
-   * @returns New instance of MemberNft
-   */
-  public static async setup(options: NftConstructorArgs) {
-    const whitelistedNftDrop = new this(constructorGuard, options);
-    const { abi } = await getContractABI({ id: '3' });
-    const contractAbstraction = new Contract(
-      options.address,
+  public registerAbi(abi:ContractInterface) {
+    this.contractAbstraction = new Contract(
+      this.address,
       abi,
-      whitelistedNftDrop.ethersSigner,
+      this.ethersSigner || this.ethersProvider,
     );
-    Object.assign(whitelistedNftDrop, { contractAbstraction });
-    return whitelistedNftDrop;
-  }
-
-  /**
-   * Deploys a new MemberNft smart contract to the currently connected chain
-   * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
-   * @param options.collectionData NFT collection metadata fields.
-   * @param options.infuraIpfs.projectId Infura IPFS project ID. ZKL tech team will provide this value
-   * @param options.infuraIpfs.projectSecret Infura IPFS project secret. ZKL tech team will provide this value
-   * @returns Newly deployed smart contract address. Contract is not immediately usable as it still likely being mined when this function returns
-   */
-  public static async deploy(options: NftDeploymentArgs) {
-    const {
-      provider, collectionData, infuraIpfs,
-    } = options;
-
-    const { name, symbol, beneficiaryAddress } = collectionData;
-
-    const ipfsMetadata:any = {
-      ...collectionData,
-    };
-
-    // Remove fields stored on-chain from ipfsFile
-    delete ipfsMetadata.name;
-    delete ipfsMetadata.symbol;
-    delete ipfsMetadata.beneficiaryAddress;
-
-    // Publish collection metadata blob to IPFS
-    const { projectId, projectSecret } = infuraIpfs;
-    const ipfsModule = new InfuraIpfs(projectId, projectSecret);
-    const file = new Blob([JSON.stringify(ipfsMetadata)], { type: 'application/json' });
-    const response = await ipfsModule.addFiles([{ file, fileName: `${symbol}.json` }]);
-    const contractUri = `ipfs://${response[0].Hash}`;
-
-    // Validate constructor inputs
-    const { abi, bytecode } = await getContractABI({ id: '3' });
-    validateConstructorParams(abi, [name, symbol, contractUri, beneficiaryAddress]);
-
-    // Create contract object and deploy
-    const signer = Signer.isSigner(provider) ? provider : new providers.Web3Provider(provider).getSigner();
-    const factory = new ContractFactory(abi, bytecode, signer);
-    const { address, deployTransaction } = await factory.deploy(name, symbol, contractUri, beneficiaryAddress);
-
-    return {
-      address,
-      transaction: parseTransactionData(deployTransaction),
-    };
   }
 
   /**
@@ -190,6 +127,104 @@ export default class MemberNft extends NftLazyMint {
     const allTokens = await this.getAllTokens();
     return allTokens.filter((token) => (token.owner.toLowerCase() === owner.toLowerCase()));
   }
+}
+
+interface MemberNft extends NftLazyMint {}
+
+class MemberNft extends MemberNftReadOnly {
+  public readonly address: EthereumAddress;
+
+  protected readonly ethersProvider: providers.Web3Provider;
+
+  protected readonly ethersSigner: Signer;
+
+  protected readonly contractAbstraction: Contract;
+
+  protected readonly ipfsModule: InfuraIpfs;
+
+  constructor(options: NftConstructorArgsFull) {
+    super(options as NftConstructorArgsReadOnly);
+
+    const { provider } = options;
+
+    if (Signer.isSigner(provider)) { // ethers Wallet provided
+      this.ethersProvider = provider.provider as providers.Web3Provider;
+      this.ethersSigner = provider;
+    } else { // EIP-1193 compliant object provided
+      this.ethersProvider = new providers.Web3Provider(provider);
+      this.ethersSigner = this.ethersProvider.getSigner();
+    }
+  }
+
+  /**
+ * Creates a new instance of MemberNft at the specified address.
+ * @param options.provider OPTIONAL - Valid ethers Wallet instance or EIP-1193 compliant provider object
+ * @param options.chainId OPTIONAL - ID of chain to connect to. Only needed if provider param is not included.
+ * @param options.address Address of MemberNft contract to connect to
+ * @param options.infuraIpfsProjectId Infura IPFS project ID. ZKL tech team will provide this value
+ * @param options.infuraIpfsProjectSecret Infura IPFS project secret. ZKL tech team will provide this value
+ * @remarks If given the chainId parameter, a read only instance is returned. If given the provider parameter, a full instance is returned.
+ * @returns New instance of MemberNft
+ */
+  public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
+    if ('provider' in options) {
+      const memberNft = new MemberNft(options as NftConstructorArgsFull);
+      const { abi } = await getContractABI({ id: '3' });
+      memberNft.registerAbi(abi);
+      return memberNft as ReturnType<T>;
+    } if ('chainId' in options) {
+      const memberNftReadOnly = new MemberNftReadOnly(options as NftConstructorArgsReadOnly);
+      const { abi } = await getContractABI({ id: '3' });
+      memberNftReadOnly.registerAbi(abi);
+      return memberNftReadOnly as ReturnType<T>;
+    } throw new Error('Must pass in either valid provider or chainId');
+  }
+
+  /**
+ * Deploys a new MemberNft smart contract to the currently connected chain
+ * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
+ * @param options.collectionData NFT collection metadata fields.
+ * @param options.infuraIpfs.projectId Infura IPFS project ID. ZKL tech team will provide this value
+ * @param options.infuraIpfs.projectSecret Infura IPFS project secret. ZKL tech team will provide this value
+ * @returns Newly deployed smart contract address. Contract is not immediately usable as it still likely being mined when this function returns
+ */
+  public static async deploy(options: NftDeploymentArgs) {
+    const {
+      provider, collectionData, infuraIpfs,
+    } = options;
+
+    const { name, symbol, beneficiaryAddress } = collectionData;
+
+    const ipfsMetadata:any = {
+      ...collectionData,
+    };
+
+    // Remove fields stored on-chain from ipfsFile
+    delete ipfsMetadata.name;
+    delete ipfsMetadata.symbol;
+    delete ipfsMetadata.beneficiaryAddress;
+
+    // Publish collection metadata blob to IPFS
+    const { projectId, projectSecret } = infuraIpfs;
+    const ipfsModule = new InfuraIpfs(projectId, projectSecret);
+    const file = new Blob([JSON.stringify(ipfsMetadata)], { type: 'application/json' });
+    const response = await ipfsModule.addFiles([{ file, fileName: `${symbol}.json` }]);
+    const contractUri = `ipfs://${response[0].Hash}`;
+
+    // Validate constructor inputs
+    const { abi, bytecode } = await getContractABI({ id: '3' });
+    validateConstructorParams(abi, [name, symbol, contractUri, beneficiaryAddress]);
+
+    // Create contract object and deploy
+    const signer = Signer.isSigner(provider) ? provider : new providers.Web3Provider(provider).getSigner();
+    const factory = new ContractFactory(abi, bytecode, signer);
+    const { address, deployTransaction } = await factory.deploy(name, symbol, contractUri, beneficiaryAddress);
+
+    return {
+      address,
+      transaction: parseTransactionData(deployTransaction),
+    };
+  }
 
   /**
    * Generates a new mint voucher
@@ -249,19 +284,6 @@ export default class MemberNft extends NftLazyMint {
   }
 
   /**
-   * Mints a new NFT and transfers it to specified account, only resolving when tx is mined
-   * @param to Ethereum account to recieve newly minted NFT
-   * @param metadata Arbitrary JSON to be stored as NFT metadata. Must include roleId field
-   * @remarks Caller of this function must be assigned MINTER_ROLE
-   * @returns Mined mint transaction
-   */
-  public async mintToAndWait(to:string, metadata:{ roleId:string, [key: string]: any }) {
-    const tx = await this.mintTo(to, metadata);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
-
-  /**
    * Mint a new NFT and transfer it to minter (defined in voucher)
    * @param voucher Valid mint voucher signed by account with MINTER_ROLE
    * @param metadata Arbitrary JSON to be stored as NFT metadata. Must include roleId field.
@@ -276,16 +298,8 @@ export default class MemberNft extends NftLazyMint {
     const tx = await this.mintWithUri(voucher, ipfsCid);
     return tx;
   }
-
-  /**
-   * Mint a new NFT and transfer it to minter (defined in voucher), only resolving when tx is mined
-   * @param voucher Valid mint voucher signed by account with MINTER_ROLE
-   * @param metadata Arbitrary JSON to be stored as NFT metadata. Must include roleId field.
-   * @returns Mined mint transaction
-   */
-  public async mintAndWait(voucher:NftMintVoucher, metadata:{ roleId:string, [key: string]: any }) {
-    const tx = await this.mint(voucher, metadata);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
 }
+
+applyMixins(MemberNft, [NftLazyMint]);
+
+export { MemberNft, MemberNftReadOnly };

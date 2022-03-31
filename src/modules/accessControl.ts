@@ -1,16 +1,17 @@
 import { Contract, utils } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
-import { TransactionData, MinedTransactionData } from '../interfaces/transaction';
-import { parseTransactionData, parseMinedTransactionData } from '../utils/contract/conversions';
+import { TransactionData } from '../interfaces/transaction';
+import { parseTransactionData } from '../utils/contract/conversions';
 
 /**
- * Adds support for role based smart contract administration
+ * Adds query support for role based smart contract administration
  * https://docs.openzeppelin.com/contracts/4.x/access-control#role-based-access-control
+ * @remarks Module is read-only and does not support transactions
  */
-export default class AccessControl {
+class AccessControlReadOnly {
   public readonly address: EthereumAddress;
 
-  protected readonly contractAbstraction: Contract;
+  protected contractAbstraction: Contract;
 
   /* Read-Only Functions */
   public async hasRole(role:string, address:string): Promise<boolean> {
@@ -37,19 +38,14 @@ export default class AccessControl {
     const member = await this.contractAbstraction.getRoleMember(roleHash, index);
     return member;
   }
+}
 
-  /* Transactions */
+class AccessControl extends AccessControlReadOnly {
   public async grantRole(role:string, address:string): Promise<TransactionData> {
     isEthereumAddress(address);
     const roleHash = utils.keccak256(utils.toUtf8Bytes(role));
     const tx = await this.contractAbstraction.grantRole(roleHash, address);
     return parseTransactionData(tx);
-  }
-
-  public async grantRoleAndWait(role:string, address:string): Promise<MinedTransactionData> {
-    const tx = await this.grantRole(role, address);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
   }
 
   public async revokeRole(role:string, address:string): Promise<TransactionData> {
@@ -58,10 +54,6 @@ export default class AccessControl {
     const tx = await this.contractAbstraction.revokeRole(roleHash, address);
     return parseTransactionData(tx);
   }
-
-  public async revokeRoleAndWait(role:string, address:string): Promise<MinedTransactionData> {
-    const tx = await this.revokeRole(role, address);
-    const mined = await tx.wait();
-    return parseMinedTransactionData(mined);
-  }
 }
+
+export { AccessControlReadOnly, AccessControl };
