@@ -242,10 +242,17 @@ describe('IPFS client', () => {
   test('GetGatewayUrl returns correctly formatted reponse', () => {
     const client = new Ipfs('projectid', 'projectsecret') as any;
     const mockDetectIpfsUrl = jest.spyOn(client, 'detectIpfsUri').mockImplementation(() => (jest.fn()));
-    mockDetectIpfsUrl.mockReturnValue('qm12345');
+    mockDetectIpfsUrl.mockReturnValueOnce('qm12345');
 
     expect(client.getGatewayUrl('qm12345')).toEqual('https://qm12345.zkladder.infura-ipfs.io');
     expect(mockDetectIpfsUrl).toHaveBeenCalledWith('qm12345');
+
+    const mockIpfsCid = 'Qm543216am543216Qb543216hu543216Qm543216mk5432';
+    mockDetectIpfsUrl.mockReturnValueOnce(mockIpfsCid);
+    mockCidTool.base32.mockReturnValueOnce('ba54321');
+    expect(client.getGatewayUrl(mockIpfsCid)).toEqual('https://ba54321.zkladder.infura-ipfs.io');
+    expect(mockDetectIpfsUrl).toHaveBeenCalledWith(mockIpfsCid);
+    expect(mockCidTool.base32).toHaveBeenCalledWith(mockIpfsCid);
   });
 
   test('GetPinned correctly calls the request function', async () => {
