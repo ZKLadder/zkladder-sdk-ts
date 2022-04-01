@@ -244,13 +244,13 @@ describe('IPFS client', () => {
     const mockDetectIpfsUrl = jest.spyOn(client, 'detectIpfsUri').mockImplementation(() => (jest.fn()));
     mockDetectIpfsUrl.mockReturnValueOnce('qm12345');
 
-    expect(client.getGatewayUrl('qm12345')).toEqual('https://qm12345.zkladder.infura-ipfs.io');
+    expect(client.getGatewayUrl('qm12345')).toEqual('https://zkladder.infura-ipfs.io/ipfs/qm12345');
     expect(mockDetectIpfsUrl).toHaveBeenCalledWith('qm12345');
 
     const mockIpfsCid = 'Qm543216am543216Qb543216hu543216Qm543216mk5432';
     mockDetectIpfsUrl.mockReturnValueOnce(mockIpfsCid);
     mockCidTool.base32.mockReturnValueOnce('ba54321');
-    expect(client.getGatewayUrl(mockIpfsCid)).toEqual('https://ba54321.zkladder.infura-ipfs.io');
+    expect(client.getGatewayUrl(mockIpfsCid)).toEqual('https://zkladder.infura-ipfs.io/ipfs/ba54321');
     expect(mockDetectIpfsUrl).toHaveBeenCalledWith(mockIpfsCid);
     expect(mockCidTool.base32).toHaveBeenCalledWith(mockIpfsCid);
   });
