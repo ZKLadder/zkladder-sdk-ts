@@ -244,7 +244,7 @@ describe('IPFS client', () => {
     const mockDetectIpfsUrl = jest.spyOn(client, 'detectIpfsUri').mockImplementation(() => (jest.fn()));
     mockDetectIpfsUrl.mockReturnValue('qm12345');
 
-    expect(client.getGatewayUrl('qm12345')).toEqual('https://qm12345.ipfs.infura-ipfs.io');
+    expect(client.getGatewayUrl('qm12345')).toEqual('https://qm12345.zkladder.infura-ipfs.io');
     expect(mockDetectIpfsUrl).toHaveBeenCalledWith('qm12345');
   });
 

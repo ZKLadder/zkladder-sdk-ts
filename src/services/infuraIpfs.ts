@@ -138,8 +138,8 @@ class InfuraIpfs {
    */
   public getGatewayUrl(arg:string): string {
     const cid = this.detectIpfsUri(arg);
-    if (cid.length === 46 && cid.startsWith('Qm')) return `https://${cidTool.base32(cid)}.ipfs.infura-ipfs.io`;
-    return `https://${cid}.ipfs.infura-ipfs.io`;
+    if (cid.length === 46 && cid.startsWith('Qm')) return `https://${cidTool.base32(cid)}.zkladder.infura-ipfs.io`;
+    return `https://${cid}.zkladder.infura-ipfs.io`;
   }
 
   /**
