@@ -17,6 +17,8 @@ import { validateConstructorParams } from '../utils/contract/validators';
 import applyMixins from '../utils/mixins/applyMixins';
 import getNetworkById from '../constants/networks';
 
+const constructorGuard = { };
+
 type ReturnType<T> = T extends NftConstructorArgsFull ? MemberNft : MemberNftReadOnly;
 
 class MemberNftReadOnly extends NftLazyMintReadOnly {
@@ -28,20 +30,20 @@ class MemberNftReadOnly extends NftLazyMintReadOnly {
 
   protected readonly ipfsModule: InfuraIpfs;
 
-  constructor(options: NftConstructorArgsReadOnly) {
+  constructor(guard:any, options: NftConstructorArgsReadOnly) {
     super();
 
+    if (guard !== constructorGuard) throw new Error('Cannot call constructor directly; Use MemberNft.setup function');
+
     const {
-      address, provider, chainId, infuraIpfsProjectId, infuraIpfsProjectSecret,
+      address, chainId, infuraIpfsProjectId, infuraIpfsProjectSecret,
     } = options;
 
     this.ipfsModule = new InfuraIpfs(infuraIpfsProjectId, infuraIpfsProjectSecret);
     this.address = isEthereumAddress(address);
 
-    if (!provider && chainId) {
-      const { RPCEndpoint } = getNetworkById(chainId as any);
-      this.ethersProvider = getDefaultProvider(RPCEndpoint);
-    }
+    const { RPCEndpoint } = getNetworkById(chainId as any);
+    this.ethersProvider = getDefaultProvider(RPCEndpoint);
   }
 
   public registerAbi(abi:ContractInterface) {
@@ -129,9 +131,9 @@ class MemberNftReadOnly extends NftLazyMintReadOnly {
   }
 }
 
-interface MemberNft extends NftLazyMint {}
+interface MemberNft extends MemberNftReadOnly, NftLazyMint {}
 
-class MemberNft extends MemberNftReadOnly {
+class MemberNft {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.Web3Provider;
@@ -142,10 +144,15 @@ class MemberNft extends MemberNftReadOnly {
 
   protected readonly ipfsModule: InfuraIpfs;
 
-  constructor(options: NftConstructorArgsFull) {
-    super(options as NftConstructorArgsReadOnly);
+  constructor(guard:any, options: NftConstructorArgsFull) {
+    if (guard !== constructorGuard) throw new Error('Cannot call constructor directly; Use MemberNft.setup function');
 
-    const { provider } = options;
+    const {
+      address, provider, infuraIpfsProjectId, infuraIpfsProjectSecret,
+    } = options;
+
+    this.ipfsModule = new InfuraIpfs(infuraIpfsProjectId, infuraIpfsProjectSecret);
+    this.address = isEthereumAddress(address);
 
     if (Signer.isSigner(provider)) { // ethers Wallet provided
       this.ethersProvider = provider.provider as providers.Web3Provider;
@@ -168,12 +175,12 @@ class MemberNft extends MemberNftReadOnly {
  */
   public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
     if ('provider' in options) {
-      const memberNft = new MemberNft(options as NftConstructorArgsFull);
+      const memberNft = new MemberNft(constructorGuard, options as NftConstructorArgsFull);
       const { abi } = await getContractABI({ id: '3' });
       memberNft.registerAbi(abi);
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
-      const memberNftReadOnly = new MemberNftReadOnly(options as NftConstructorArgsReadOnly);
+      const memberNftReadOnly = new MemberNftReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
       const { abi } = await getContractABI({ id: '3' });
       memberNftReadOnly.registerAbi(abi);
       return memberNftReadOnly as ReturnType<T>;
@@ -300,6 +307,6 @@ class MemberNft extends MemberNftReadOnly {
   }
 }
 
-applyMixins(MemberNft, [NftLazyMint]);
+applyMixins(MemberNft, [MemberNftReadOnly, NftLazyMint]);
 
 export { MemberNft, MemberNftReadOnly };
