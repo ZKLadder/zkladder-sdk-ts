@@ -4,7 +4,7 @@ import {
 import { MemberNft, MemberNftReadOnly } from '../../src/services/memberNft';
 import getContractABI from '../../src/utils/api/getContractABI';
 import getNftMintVoucher from '../../src/utils/api/getNftMintVoucher';
-import ethersNftWhitelistedAbstraction from '../mocks/ethersNftWhitelistedAbstraction';
+import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction';
 import { EthereumAddress, isEthereumAddress } from '../../src/interfaces/address';
 import { parseTransactionData, ethToWei } from '../../src/utils/contract/conversions';
 import nftVoucher from '../../src/utils/vouchers/nftVoucher';
@@ -81,7 +81,7 @@ describe('MemberNftFactory tests', () => {
   test('setup correctly calls dependencies when instantiating MemberNft with ethers Wallet', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(true);
     const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
 
@@ -95,7 +95,7 @@ describe('MemberNftFactory tests', () => {
   test('setup correctly calls dependencies when instantiating MemberNft with EIP-1193 Provider', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
     const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
 
@@ -109,7 +109,7 @@ describe('MemberNftFactory tests', () => {
   test('setup correctly calls dependencies when instantiating MemberNft only chainId', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
-    mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
     mockReadOnlyProvider.mockReturnValueOnce('mockReadOnlyProvider');
     const nft = await MemberNft.setup({ ...setupParams, chainId: 1 });
@@ -123,7 +123,7 @@ describe('MemberNftFactory tests', () => {
   test('setup rethrows API errors', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockGetContractAbi.mockRejectedValueOnce('The ZKL API is not operational');
-    mockContract.mockReturnValueOnce(ethersNftWhitelistedAbstraction);
+    mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
 
     try {
       await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
