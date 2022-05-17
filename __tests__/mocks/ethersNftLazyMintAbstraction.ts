@@ -3,6 +3,8 @@ export default {
   beneficiaryAddress: jest.fn(),
   contractURI: jest.fn(),
   baseURI: jest.fn(),
+  isTransferrable: jest.fn(),
+  royaltyBasis: jest.fn(),
 
   // Transactions
   setContractUri: jest.fn(),

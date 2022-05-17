@@ -45,7 +45,7 @@ class NftLazyMintReadOnly {
 
   public async royaltyBasis(): Promise<number> {
     const royaltyBasis = await this.contractAbstraction.royaltyBasis();
-    return royaltyBasis;
+    return royaltyBasis.toNumber();
   }
 }
 
