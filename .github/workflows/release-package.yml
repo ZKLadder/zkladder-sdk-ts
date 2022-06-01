@@ -15,6 +15,15 @@ jobs:
         with:
           node-version: 14
           registry-url: https://npm.pkg.github.com/
+      
+      - name: Set NPM Registry
+        run: npm set registry https://npm.pkg.github.com/zkladder
+
+      - name: Inject Personal Access Token
+        env:
+          ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: npm set //npm.pkg.github.com/:_authToken $ACCESS_TOKEN
+        
       - run: npm ci
       - run: npm run build
       - run: npm publish
