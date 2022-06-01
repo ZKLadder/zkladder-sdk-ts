@@ -176,7 +176,7 @@ class MemberNft {
   public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
     if ('provider' in options) {
       const memberNft = new MemberNft(constructorGuard, options as NftConstructorArgsFull);
-      const { abi } = contracts({ id: '1' });
+      const { abi } = contracts('1');
       memberNft.registerAbi(abi);
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
