@@ -181,7 +181,7 @@ class MemberNft {
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
       const memberNftReadOnly = new MemberNftReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
-      const { abi } = await contracts('1');
+      const { abi } = contracts('1');
       memberNftReadOnly.registerAbi(abi);
       return memberNftReadOnly as ReturnType<T>;
     } throw new Error('Must pass in either valid provider or chainId');
