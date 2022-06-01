@@ -1,8 +1,8 @@
 import {
   providers, Contract, ContractFactory, Signer, BigNumber, getDefaultProvider,
 } from 'ethers';
+import contracts from '@zkladder/zkladder-contracts';
 import { MemberNft, MemberNftReadOnly } from '../../src/services/memberNft';
-import getContractABI from '../../src/utils/api/getContractABI';
 import getNftMintVoucher from '../../src/utils/api/getNftMintVoucher';
 import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction';
 import { EthereumAddress, isEthereumAddress } from '../../src/interfaces/address';
@@ -10,7 +10,7 @@ import { parseTransactionData, ethToWei } from '../../src/utils/contract/convers
 import nftVoucher from '../../src/utils/vouchers/nftVoucher';
 import { validateConstructorParams } from '../../src/utils/contract/validators';
 
-jest.mock('../../src/utils/api/getContractABI', () => (jest.fn()));
+jest.mock('@zkladder/zkladder-contracts', () => (jest.fn()));
 jest.mock('../../src/utils/api/getNftMintVoucher', () => (jest.fn()));
 jest.mock('ethers', () => ({
   providers: {
@@ -53,7 +53,7 @@ jest.mock('../../src/constants/networks', () => (jest.fn(() => ({
   RPCEndpoint: 'https://mock.mock',
 }))));
 
-const mockGetContractAbi = getContractABI as jest.Mocked<any>;
+const mockContracts = contracts as jest.Mocked<any>;
 const mockGetNftMintVoucher = getNftMintVoucher as jest.Mocked<any>;
 const mockProviders = providers as jest.Mocked<any>;
 const mockReadOnlyProvider = getDefaultProvider as jest.Mocked<any>;
@@ -80,7 +80,7 @@ describe('MemberNftFactory tests', () => {
 
   test('setup correctly calls dependencies when instantiating MemberNft with ethers Wallet', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(true);
     const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
@@ -94,7 +94,7 @@ describe('MemberNftFactory tests', () => {
 
   test('setup correctly calls dependencies when instantiating MemberNft with EIP-1193 Provider', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
     const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
@@ -108,7 +108,7 @@ describe('MemberNftFactory tests', () => {
 
   test('setup correctly calls dependencies when instantiating MemberNft only chainId', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
     mockReadOnlyProvider.mockReturnValueOnce('mockReadOnlyProvider');
@@ -120,16 +120,16 @@ describe('MemberNftFactory tests', () => {
     mockSupportsInterface.mockRestore();
   });
 
-  test('setup rethrows API errors', async () => {
+  test('setup rethrows errors', async () => {
     const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
-    mockGetContractAbi.mockRejectedValueOnce('The ZKL API is not operational');
+    mockContracts.mockImplementation(() => { throw new Error('Error during contract setup'); });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
 
     try {
       await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
       expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toStrictEqual('The ZKL API is not operational');
+    } catch (error:any) {
+      expect(error.message).toStrictEqual('Error during contract setup');
     }
     mockSupportsInterface.mockRestore();
   });
@@ -153,7 +153,7 @@ describe('MemberNftFactory tests', () => {
       address: 'newcontractaddress',
       deployTransaction: 'mockDeployTransaction',
     }));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
     mockContractFactory.mockImplementation(() => ({
       deploy: mockDeploy,
     }));
@@ -166,7 +166,7 @@ describe('MemberNftFactory tests', () => {
       infuraIpfs,
     });
 
-    expect(mockGetContractAbi).toHaveBeenCalledWith({ id: '3' });
+    expect(mockContracts).toHaveBeenCalledWith('1');
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockProvider');
     expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser');
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
@@ -196,7 +196,7 @@ describe('MemberNftFactory tests', () => {
       address: 'newcontractaddress',
       deployTransaction: 'mockDeployTransaction',
     }));
-    mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
     mockContractFactory.mockImplementation(() => ({
       deploy: mockDeploy,
     }));
@@ -209,7 +209,7 @@ describe('MemberNftFactory tests', () => {
       infuraIpfs,
     });
 
-    expect(mockGetContractAbi).toHaveBeenCalledWith({ id: '3' });
+    expect(mockContracts).toHaveBeenCalledWith('1');
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockSigner');
     expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser');
     expect(mockParseTransactionData).toHaveBeenCalledWith('mockDeployTransaction');

@@ -2,12 +2,12 @@ import {
   providers, Contract, ContractFactory, Signer, ContractInterface, getDefaultProvider,
 } from 'ethers';
 import axios from 'axios';
+import contracts from '@zkladder/zkladder-contracts';
 import InfuraIpfs from './infuraIpfs';
 import { NftLazyMintReadOnly, NftLazyMint } from '../modules/nftLazyMint';
 import {
   NftDeploymentArgs, NftMintVoucher, CollectionRole, NftConstructorArgsFull, NftConstructorArgsReadOnly,
 } from '../interfaces/nftLazyMint';
-import getContractABI from '../utils/api/getContractABI';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
 import { parseTransactionData, ethToWei } from '../utils/contract/conversions';
@@ -176,12 +176,12 @@ class MemberNft {
   public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
     if ('provider' in options) {
       const memberNft = new MemberNft(constructorGuard, options as NftConstructorArgsFull);
-      const { abi } = await getContractABI({ id: '3' });
+      const { abi } = contracts('1');
       memberNft.registerAbi(abi);
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
       const memberNftReadOnly = new MemberNftReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
-      const { abi } = await getContractABI({ id: '3' });
+      const { abi } = contracts('1');
       memberNftReadOnly.registerAbi(abi);
       return memberNftReadOnly as ReturnType<T>;
     } throw new Error('Must pass in either valid provider or chainId');
@@ -219,7 +219,7 @@ class MemberNft {
     const contractUri = `ipfs://${response[0].Hash}`;
 
     // Validate constructor inputs
-    const { abi, bytecode } = await getContractABI({ id: '3' });
+    const { abi, bytecode } = contracts('1');
     validateConstructorParams(abi, [name, symbol, contractUri, beneficiaryAddress]);
 
     // Create contract object and deploy
