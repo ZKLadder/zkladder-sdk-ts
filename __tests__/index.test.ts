@@ -3,10 +3,13 @@
  * @jest-environment node
  */
 
-import { MemberNft, Ipfs, utilities } from '../src/index';
+import {
+  MemberNftV1, MemberNft, Ipfs, utilities,
+} from '../src/index';
 
 describe('ZKL parent class', () => {
   test('defines supported modules', () => {
+    expect(typeof MemberNftV1).toBe('function');
     expect(typeof MemberNft).toBe('function');
     expect(typeof Ipfs).toBe('function');
     expect(typeof utilities).toBe('object');

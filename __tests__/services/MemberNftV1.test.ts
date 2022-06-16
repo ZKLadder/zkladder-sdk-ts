@@ -2,12 +2,12 @@ import {
   providers, Contract, ContractFactory, Signer, BigNumber, getDefaultProvider,
 } from 'ethers';
 import contracts from '@zkladder/zkladder-contracts';
-import { MemberNft, MemberNftReadOnly } from '../../src/services/memberNft';
+import { MemberNftV1, MemberNftV1ReadOnly } from '../../src/services/memberNftV1';
 import getNftMintVoucher from '../../src/utils/api/getNftMintVoucher';
 import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction';
 import { EthereumAddress, isEthereumAddress } from '../../src/interfaces/address';
 import { parseTransactionData, ethToWei } from '../../src/utils/contract/conversions';
-import nftVoucher from '../../src/utils/vouchers/nftVoucher';
+import nftVoucher from '../../src/utils/vouchers/memberNftV1';
 import { validateConstructorParams } from '../../src/utils/contract/validators';
 
 jest.mock('@zkladder/zkladder-contracts', () => (jest.fn()));
@@ -36,7 +36,7 @@ jest.mock('../../src/utils/contract/conversions', () => ({
   ethToWei: jest.fn(),
 }));
 
-jest.mock('../../src/utils/vouchers/nftVoucher', () => (jest.fn()));
+jest.mock('../../src/utils/vouchers/memberNftV1', () => (jest.fn()));
 
 jest.mock('axios', () => ({
   get: jest.fn(() => ({ data: { mock: 'metadata' } })),
@@ -66,7 +66,7 @@ const mockEthToWei = ethToWei as jest.Mocked<any>;
 const mockNftVoucher = nftVoucher as jest.Mocked<any>;
 const mockValidateConstructorParams = validateConstructorParams as jest.Mocked<any>;
 
-describe('MemberNftFactory tests', () => {
+describe('MemberNftV1Factory tests', () => {
   const mockProvider = { send: jest.fn(), getSigner: jest.fn(() => ('mockSigner')) };
 
   mockProviders.Web3Provider.mockReturnValue(mockProvider);
@@ -78,55 +78,55 @@ describe('MemberNftFactory tests', () => {
     infuraIpfsProjectSecret: 'mockSecret',
   };
 
-  test('setup correctly calls dependencies when instantiating MemberNft with ethers Wallet', async () => {
-    const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
+  test('setup correctly calls dependencies when instantiating MemberNftV1 with ethers Wallet', async () => {
+    const mockSupportsInterface = jest.spyOn(MemberNftV1.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(true);
-    const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
+    const nft = await MemberNftV1.setup({ ...setupParams, provider: 'mockProvider' });
 
     expect(mockProviders.Web3Provider).toHaveBeenCalledTimes(0);
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockProvider');
-    expect(nft instanceof MemberNft).toBe(true);
+    expect(nft instanceof MemberNftV1).toBe(true);
     mockSupportsInterface.mockRestore();
   });
 
-  test('setup correctly calls dependencies when instantiating MemberNft with EIP-1193 Provider', async () => {
-    const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
+  test('setup correctly calls dependencies when instantiating MemberNftV1 with EIP-1193 Provider', async () => {
+    const mockSupportsInterface = jest.spyOn(MemberNftV1.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
-    const nft = await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
+    const nft = await MemberNftV1.setup({ ...setupParams, provider: 'mockProvider' });
 
     expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(1);
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockSigner');
-    expect(nft instanceof MemberNft).toBe(true);
+    expect(nft instanceof MemberNftV1).toBe(true);
     mockSupportsInterface.mockRestore();
   });
 
-  test('setup correctly calls dependencies when instantiating MemberNft only chainId', async () => {
-    const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
+  test('setup correctly calls dependencies when instantiating MemberNftV1 only chainId', async () => {
+    const mockSupportsInterface = jest.spyOn(MemberNftV1.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockContracts.mockReturnValue({ abi: 'mockAbi' });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
     mockSigner.isSigner.mockReturnValueOnce(false);
     mockReadOnlyProvider.mockReturnValueOnce('mockReadOnlyProvider');
-    const nft = await MemberNft.setup({ ...setupParams, chainId: 1 });
+    const nft = await MemberNftV1.setup({ ...setupParams, chainId: 1 });
 
     expect(mockReadOnlyProvider).toHaveBeenCalledWith('https://mock.mock');
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockReadOnlyProvider');
-    expect(nft instanceof MemberNftReadOnly).toBe(true);
+    expect(nft instanceof MemberNftV1ReadOnly).toBe(true);
     mockSupportsInterface.mockRestore();
   });
 
   test('setup rethrows errors', async () => {
-    const mockSupportsInterface = jest.spyOn(MemberNft.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
+    const mockSupportsInterface = jest.spyOn(MemberNftV1.prototype, 'supportsInterface').mockImplementationOnce(() => (Promise.resolve(true)));
     mockContracts.mockImplementation(() => { throw new Error('Error during contract setup'); });
     mockContract.mockReturnValueOnce(ethersNftLazyMintAbstraction);
 
     try {
-      await MemberNft.setup({ ...setupParams, provider: 'mockProvider' });
+      await MemberNftV1.setup({ ...setupParams, provider: 'mockProvider' });
       expect(true).toBe(false);
     } catch (error:any) {
       expect(error.message).toStrictEqual('Error during contract setup');
@@ -160,7 +160,7 @@ describe('MemberNftFactory tests', () => {
     mockParseTransactionData.mockReturnValue({ mock: 'result' });
     mockSigner.isSigner.mockReturnValueOnce(true);
 
-    const nft = await MemberNft.deploy({
+    const nft = await MemberNftV1.deploy({
       provider: 'mockProvider',
       collectionData,
       infuraIpfs,
@@ -203,7 +203,7 @@ describe('MemberNftFactory tests', () => {
     mockParseTransactionData.mockReturnValue({ mock: 'result' });
     mockSigner.isSigner.mockReturnValueOnce(false);
 
-    const nft = await MemberNft.deploy({
+    const nft = await MemberNftV1.deploy({
       provider: 'mockProvider',
       collectionData,
       infuraIpfs,
@@ -223,7 +223,7 @@ describe('MemberNftFactory tests', () => {
   });
 });
 
-describe('MemberNftReadOnly service tests', () => {
+describe('MemberNftV1ReadOnly service tests', () => {
   const setupParams = {
     chainId: 1,
     address: '0x123456789',
@@ -232,7 +232,7 @@ describe('MemberNftReadOnly service tests', () => {
   };
 
   test('getRoleData correctly calls dependencies and returns results', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'getCollectionMetadata').mockImplementationOnce(() => (Promise.resolve({
       name: 'test',
       symbol: 'test',
@@ -260,7 +260,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 
   test('getRoleData throws when role does not exist', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'getCollectionMetadata').mockImplementationOnce(() => (Promise.resolve({
       name: 'test',
       symbol: 'test',
@@ -282,7 +282,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 
   test('getCollectionMetadata correctly calls dependencies and returns results', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKNAME')));
     jest.spyOn(memberNft, 'symbol').mockImplementationOnce(() => (Promise.resolve('MOCKSYMBOL')));
     jest.spyOn(memberNft, 'beneficiaryAddress').mockImplementationOnce(() => (Promise.resolve('0xtokenHolder' as EthereumAddress)));
@@ -304,7 +304,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 
   test('getToken correctly calls dependencies and returns results', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'tokenUri').mockImplementationOnce(() => (Promise.resolve('https://mockNft.com')));
     jest.spyOn(memberNft, 'ownerOf').mockImplementation(() => (Promise.resolve('0xtokenHolder') as any));
 
@@ -324,7 +324,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 
   test('getAllTokens correctly calls dependencies and returns results', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
     jest.spyOn(memberNft, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
 
@@ -341,7 +341,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 
   test('getAllTokensOwnedBy correctly calls dependencies and returns results', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'getAllTokens').mockImplementationOnce(() => (Promise.resolve([
       {
         tokenId: 1, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
@@ -366,7 +366,7 @@ describe('MemberNftReadOnly service tests', () => {
   });
 });
 
-describe('MemberNft service tests', () => {
+describe('MemberNftV1 service tests', () => {
   const setupParams = {
     provider: 'mockProvider',
     address: '0x123456789',
@@ -375,7 +375,7 @@ describe('MemberNft service tests', () => {
   };
 
   test('getMintVoucher function correctly calls dependencies and returns result', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
     mockGetNftMintVoucher.mockResolvedValue({ mock: 'voucher' });
     const voucher = await memberNft.getMintVoucher('0xuser12345', 'mockRole');
@@ -387,7 +387,7 @@ describe('MemberNft service tests', () => {
   });
 
   test('signMintVoucher function correctly calls dependencies and returns result', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
     jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKZKL')));
     jest.spyOn(memberNft, 'getRoleData').mockImplementationOnce(() => (Promise.resolve({
@@ -409,7 +409,7 @@ describe('MemberNft service tests', () => {
   });
 
   test('mintTo function correctly calls dependencies and returns result', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     const mockMintToWithUri = jest.fn();
     jest.spyOn(memberNft as any, 'totalSupply').mockImplementationOnce(() => (5));
     jest.spyOn(memberNft as any, 'mintToWithUri').mockImplementationOnce(mockMintToWithUri);
@@ -426,7 +426,7 @@ describe('MemberNft service tests', () => {
   });
 
   test('mint function correctly calls dependencies and returns result', async () => {
-    const memberNft = await MemberNft.setup(setupParams);
+    const memberNft = await MemberNftV1.setup(setupParams);
     jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
     jest.spyOn(memberNft as any, 'mintWithUri').mockImplementationOnce(() => (Promise.resolve({ mock: 'result' })));
     jest.spyOn(memberNft as any, 'getRoleData').mockImplementationOnce(jest.fn());

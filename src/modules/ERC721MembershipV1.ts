@@ -1,6 +1,6 @@
 import { providers, Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
-import { Role, NftMintVoucher } from '../interfaces/nftLazyMint';
+import { Role, NftMintVoucher } from '../interfaces/memberNftV1';
 import { TransactionData } from '../interfaces/transaction';
 import { parseTransactionData } from '../utils/contract/conversions';
 import applyMixins from '../utils/mixins/applyMixins';
@@ -8,14 +8,14 @@ import { NftReadOnly, Nft } from './nft';
 import { AccessControlReadOnly, AccessControl } from './accessControl';
 import Provider from './provider';
 
-interface NftLazyMintReadOnly extends NftReadOnly, AccessControlReadOnly {}
+interface ERC721MembershipV1ReadOnly extends NftReadOnly, AccessControlReadOnly {}
 
 /**
  * Adds query support for ZKLadder ERC-721 Whitelisted contract template
  * @TODO Add Github/documentation link
  * @remarks Module is read-only and does not support transactions
  */
-class NftLazyMintReadOnly {
+class ERC721MembershipV1ReadOnly {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.BaseProvider;
@@ -49,13 +49,13 @@ class NftLazyMintReadOnly {
   }
 }
 
-interface NftLazyMint extends NftLazyMintReadOnly, Nft, AccessControl, Provider {}
+interface ERC721MembershipV1 extends ERC721MembershipV1ReadOnly, Nft, AccessControl, Provider {}
 
 /**
  * Adds full support for ZKLadder ERC-721 Whitelisted contract template
  * @TODO Add Github/documentation link
  */
-class NftLazyMint {
+class ERC721MembershipV1 {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.Web3Provider;
@@ -119,7 +119,7 @@ class NftLazyMint {
   }
 }
 
-applyMixins(NftLazyMintReadOnly, [NftReadOnly, AccessControlReadOnly]);
-applyMixins(NftLazyMint, [NftLazyMintReadOnly, Nft, AccessControl, Provider]);
+applyMixins(ERC721MembershipV1ReadOnly, [NftReadOnly, AccessControlReadOnly]);
+applyMixins(ERC721MembershipV1, [ERC721MembershipV1ReadOnly, Nft, AccessControl, Provider]);
 
-export { NftLazyMintReadOnly, NftLazyMint };
+export { ERC721MembershipV1ReadOnly, ERC721MembershipV1 };

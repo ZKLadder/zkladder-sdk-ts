@@ -5,8 +5,13 @@ export default {
   baseURI: jest.fn(),
   isTransferrable: jest.fn(),
   royaltyBasis: jest.fn(),
+  totalTiers: jest.fn(),
+  tierInfo: jest.fn(),
+  tokenTiers: jest.fn(),
 
   // Transactions
+  addTiers: jest.fn(),
+  updateTiers: jest.fn(),
   setContractUri: jest.fn(),
   setBaseUri: jest.fn(),
   setBeneficiary: jest.fn(),
