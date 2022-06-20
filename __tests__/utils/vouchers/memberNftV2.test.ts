@@ -1,5 +1,4 @@
-import { BigNumber } from 'ethers';
-import formatNftVoucher from '../../../src/utils/vouchers/nftVoucher';
+import formatNftVoucher from '../../../src/utils/vouchers/memberNftV2';
 
 describe('formatNftVoucher function', () => {
   test('Returns correctly formatted NFT mint voucher', () => {
@@ -7,10 +6,10 @@ describe('formatNftVoucher function', () => {
     const contractName = 'mockName';
     const contractAddress = '0xmockAddress';
     const balance = 10;
-    const salePrice = BigNumber.from(123);
+    const tierId = 5;
     const minter = '0xuser';
 
-    expect(formatNftVoucher(chainId, contractName, contractAddress, balance, salePrice, minter)).toStrictEqual(
+    expect(formatNftVoucher(chainId, contractName, contractAddress, balance, tierId, minter)).toStrictEqual(
       JSON.stringify({
         domain: {
           chainId,
@@ -20,13 +19,13 @@ describe('formatNftVoucher function', () => {
         },
         message: {
           balance,
-          salePrice: '123',
+          tierId,
           minter,
         },
         types: {
           mintVoucher: [
             { name: 'balance', type: 'uint256' },
-            { name: 'salePrice', type: 'uint256' },
+            { name: 'tierId', type: 'uint32' },
             { name: 'minter', type: 'address' },
           ],
           EIP712Domain: [

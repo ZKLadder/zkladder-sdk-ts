@@ -1,4 +1,5 @@
-import { MemberNft, MemberNftReadOnly } from './services/memberNft';
+import { MemberNftV1, MemberNftV1ReadOnly } from './services/memberNftV1';
+import { MemberNftV2 as MemberNft, MemberNftV2ReadOnly as MemberNftReadOnly } from './services/memberNftV2';
 import Ipfs from './services/infuraIpfs';
 import {
   ethToWei, weiToEth, gweiToEth, hexToDecimal,
@@ -14,9 +15,10 @@ const utilities = {
 };
 
 export {
+  MemberNftV1,
   MemberNft,
   Ipfs,
   utilities,
 };
 
-export type { MemberNftReadOnly };
+export type { MemberNftV1ReadOnly, MemberNftReadOnly };

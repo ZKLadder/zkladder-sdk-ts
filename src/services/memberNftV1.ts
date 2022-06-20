@@ -4,24 +4,24 @@ import {
 import axios from 'axios';
 import contracts from '@zkladder/zkladder-contracts';
 import InfuraIpfs from './infuraIpfs';
-import { NftLazyMintReadOnly, NftLazyMint } from '../modules/nftLazyMint';
+import { ERC721MembershipV1ReadOnly, ERC721MembershipV1 } from '../modules/ERC721MembershipV1';
 import {
   NftDeploymentArgs, NftMintVoucher, CollectionRole, NftConstructorArgsFull, NftConstructorArgsReadOnly,
-} from '../interfaces/nftLazyMint';
+} from '../interfaces/memberNftV1';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
 import { parseTransactionData, ethToWei } from '../utils/contract/conversions';
 import { NftTokenData } from '../interfaces/nft';
-import formatNftVoucher from '../utils/vouchers/nftVoucher';
+import formatNftVoucher from '../utils/vouchers/memberNftV1';
 import { validateConstructorParams } from '../utils/contract/validators';
 import applyMixins from '../utils/mixins/applyMixins';
 import getNetworkById from '../constants/networks';
 
 const constructorGuard = { };
 
-type ReturnType<T> = T extends NftConstructorArgsFull ? MemberNft : MemberNftReadOnly;
+type ReturnType<T> = T extends NftConstructorArgsFull ? MemberNftV1 : MemberNftV1ReadOnly;
 
-class MemberNftReadOnly extends NftLazyMintReadOnly {
+class MemberNftV1ReadOnly extends ERC721MembershipV1ReadOnly {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.BaseProvider;
@@ -131,9 +131,9 @@ class MemberNftReadOnly extends NftLazyMintReadOnly {
   }
 }
 
-interface MemberNft extends MemberNftReadOnly, NftLazyMint {}
+interface MemberNftV1 extends MemberNftV1ReadOnly, ERC721MembershipV1 {}
 
-class MemberNft {
+class MemberNftV1 {
   public readonly address: EthereumAddress;
 
   protected readonly ethersProvider: providers.Web3Provider;
@@ -175,12 +175,12 @@ class MemberNft {
  */
   public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
     if ('provider' in options) {
-      const memberNft = new MemberNft(constructorGuard, options as NftConstructorArgsFull);
+      const memberNft = new MemberNftV1(constructorGuard, options as NftConstructorArgsFull);
       const { abi } = contracts('1');
       memberNft.registerAbi(abi);
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
-      const memberNftReadOnly = new MemberNftReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
+      const memberNftReadOnly = new MemberNftV1ReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
       const { abi } = contracts('1');
       memberNftReadOnly.registerAbi(abi);
       return memberNftReadOnly as ReturnType<T>;
@@ -307,6 +307,6 @@ class MemberNft {
   }
 }
 
-applyMixins(MemberNft, [MemberNftReadOnly, NftLazyMint]);
+applyMixins(MemberNftV1, [MemberNftV1ReadOnly, ERC721MembershipV1]);
 
-export { MemberNft, MemberNftReadOnly };
+export { MemberNftV1, MemberNftV1ReadOnly };

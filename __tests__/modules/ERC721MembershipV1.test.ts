@@ -1,5 +1,5 @@
 import { providers, Contract } from 'ethers';
-import { NftLazyMintReadOnly, NftLazyMint } from '../../src/modules/nftLazyMint';
+import { ERC721MembershipV1ReadOnly, ERC721MembershipV1 } from '../../src/modules/ERC721MembershipV1';
 import getContractABI from '../../src/utils/api/getContractABI';
 import { isEthereumAddress, EthereumAddress } from '../../src/interfaces/address';
 import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction';
@@ -33,7 +33,7 @@ const mockContract = Contract as jest.Mocked<any>;
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransaction = parseTransactionData as jest.Mocked<any>;
 
-class NftLazyMintReadOnlyWrapper extends NftLazyMintReadOnly {
+class ERC721MembershipV1ReadOnlyWrapper extends ERC721MembershipV1ReadOnly {
   protected readonly contractAbstraction: Contract;
 
   public readonly address: EthereumAddress;
@@ -45,7 +45,7 @@ class NftLazyMintReadOnlyWrapper extends NftLazyMintReadOnly {
   }
 }
 
-class NftLazyMintWrapper extends NftLazyMint {
+class ERC721MembershipV1Wrapper extends ERC721MembershipV1 {
   protected readonly contractAbstraction: Contract;
 
   public readonly address: EthereumAddress;
@@ -57,13 +57,13 @@ class NftLazyMintWrapper extends NftLazyMint {
   }
 }
 
-describe('NftLazyMintReadOnly class', () => {
+describe('ERC721MembershipV1ReadOnly class', () => {
   mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
   mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
   mockContract.mockReturnValue(ethersNftLazyMintAbstraction);
 
   test('beneficiaryAddress correctly calls dependencies and returns results', async () => {
-    const nftWhitelisted = new NftLazyMintReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    const nftWhitelisted = new ERC721MembershipV1ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.beneficiaryAddress.mockResolvedValueOnce('0xbeneficiary');
 
     const result = await nftWhitelisted.beneficiaryAddress();
@@ -73,7 +73,7 @@ describe('NftLazyMintReadOnly class', () => {
   });
 
   test('contractUri correctly calls dependencies and returns results', async () => {
-    const nftWhitelisted = new NftLazyMintReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    const nftWhitelisted = new ERC721MembershipV1ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.contractURI.mockResolvedValueOnce('ipfs://123456789');
 
     const result = await nftWhitelisted.contractUri();
@@ -83,7 +83,7 @@ describe('NftLazyMintReadOnly class', () => {
   });
 
   test('baseUri correctly calls dependencies and returns results', async () => {
-    const nftWhitelisted = new NftLazyMintReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    const nftWhitelisted = new ERC721MembershipV1ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.baseURI.mockResolvedValueOnce('ipfs://123456789');
 
     const result = await nftWhitelisted.baseUri();
@@ -93,7 +93,7 @@ describe('NftLazyMintReadOnly class', () => {
   });
 
   test('isTransferable correctly calls dependencies and returns results', async () => {
-    const nftWhitelisted = new NftLazyMintReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    const nftWhitelisted = new ERC721MembershipV1ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.isTransferrable.mockResolvedValueOnce(true);
 
     const result = await nftWhitelisted.isTransferrable();
@@ -103,7 +103,7 @@ describe('NftLazyMintReadOnly class', () => {
   });
 
   test('royaltyBasis correctly calls dependencies and returns results', async () => {
-    const nftWhitelisted = new NftLazyMintReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    const nftWhitelisted = new ERC721MembershipV1ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.royaltyBasis.mockResolvedValueOnce({ toNumber: () => (12345) });
 
     const result = await nftWhitelisted.royaltyBasis();
@@ -113,14 +113,14 @@ describe('NftLazyMintReadOnly class', () => {
   });
 });
 
-describe('NftLazyMint class', () => {
+describe('ERC721MembershipV1 class', () => {
   mockGetContractAbi.mockResolvedValue({ abi: 'mockAbi' });
   mockProviders.Web3Provider.mockReturnValue({ getSigner: () => ('mockSigner') });
   mockContract.mockReturnValue(ethersNftLazyMintAbstraction);
 
   test('setBeneficiary correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.setBeneficiary.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
@@ -134,8 +134,8 @@ describe('NftLazyMint class', () => {
   });
 
   test('setBaseUri correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.setBaseUri.mockResolvedValueOnce({});
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
@@ -147,8 +147,8 @@ describe('NftLazyMint class', () => {
   });
 
   test('setContractUri correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.setContractUri.mockResolvedValueOnce({});
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
@@ -160,8 +160,8 @@ describe('NftLazyMint class', () => {
   });
 
   test('transferOwnership correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.transferOwnership.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
@@ -175,8 +175,8 @@ describe('NftLazyMint class', () => {
   });
 
   test('mintTo correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.mintTo.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
@@ -190,8 +190,8 @@ describe('NftLazyMint class', () => {
   });
 
   test('mint correctly calls dependencies and returns results', async () => {
-    jest.spyOn(NftLazyMint.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    const nftWhitelisted = new NftLazyMintWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
+    jest.spyOn(ERC721MembershipV1.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
+    const nftWhitelisted = new ERC721MembershipV1Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.mint.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 

@@ -17,7 +17,7 @@ interface GetNftMintVoucherOptions {
   contractAddress: string,
   userAddress: string,
   chainId: number,
-  roleId:string
+  roleId:string,
 }
 
 export { HttpOptions, GetContractABIOptions, GetNftMintVoucherOptions };

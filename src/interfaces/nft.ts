@@ -5,6 +5,7 @@ import { EthereumAddress } from './address';
 interface NftTokenData {
   tokenId: number;
   tokenUri: string;
+  tierId?:number;
   owner: EthereumAddress;
   metadata?: { [key: string]: any };
 }
