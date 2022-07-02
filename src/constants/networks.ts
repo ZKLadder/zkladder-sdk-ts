@@ -29,6 +29,12 @@ const networks = {
     chainId: 137,
     RPCEndpoint: 'https://polygon-mainnet.infura.io/v3/2d33fc4d9a9b4140b8582c1ef3bd12e8',
   },
+  100: {
+    name: 'Gnosis Chain',
+    currency: 'xDai',
+    chainId: 100,
+    RPCEndpoint: 'https://rpc.xdaichain.com',
+  },
   5777: {
     name: 'Ganache',
     currency: 'LOCAL',

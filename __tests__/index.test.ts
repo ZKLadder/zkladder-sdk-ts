@@ -4,14 +4,15 @@
  */
 
 import {
-  MemberNftV1, MemberNft, Ipfs, utilities,
+  MemberNft, MemberNftV2, Ipfs, utilities, AccessValidator,
 } from '../src/index';
 
 describe('ZKL parent class', () => {
   test('defines supported modules', () => {
-    expect(typeof MemberNftV1).toBe('function');
     expect(typeof MemberNft).toBe('function');
+    expect(typeof MemberNftV2).toBe('function');
     expect(typeof Ipfs).toBe('function');
+    expect(typeof AccessValidator).toBe('function');
     expect(typeof utilities).toBe('object');
     // @TODO add further test cases here when building new services
   });
