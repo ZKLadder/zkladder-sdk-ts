@@ -42,10 +42,10 @@ class ERC721MembershipV2ReadOnly {
 
   public async tierInfo(tierId:number): Promise<Tier> {
     const {
-      name, royaltyBasis, salePrice, isTransferable,
+      tierURI, royaltyBasis, salePrice, isTransferable,
     } = await this.contractAbstraction.tierInfo(tierId);
     return {
-      name,
+      tierURI,
       royaltyBasis: royaltyBasis.toNumber(),
       salePrice: weiToEth(salePrice),
       isTransferable,
@@ -77,13 +77,13 @@ class ERC721MembershipV2 {
     if (!hasRole) throw new Error('The account you are connected with is not the administrator of this contract');
   }
 
-  public async addTiers(tiers:Tier[]): Promise<TransactionData> {
+  public async addTiersWithUri(tiers:Tier[]): Promise<TransactionData> {
     await this.onlyRole('DEFAULT_ADMIN_ROLE');
     const tx = await this.contractAbstraction.addTiers(tiers);
     return parseTransactionData(tx);
   }
 
-  public async updateTiers(tierUpdates:TierUpdate[]): Promise<TransactionData> {
+  public async updateTiersWithUri(tierUpdates:TierUpdate[]): Promise<TransactionData> {
     await this.onlyRole('DEFAULT_ADMIN_ROLE');
     const tx = await this.contractAbstraction.updateTiers(tierUpdates);
     return parseTransactionData(tx);

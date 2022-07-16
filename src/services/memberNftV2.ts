@@ -1,19 +1,19 @@
 import {
-  providers, Contract, ContractFactory, Signer, ContractInterface, getDefaultProvider,
+  providers, Contract, ContractFactory, Signer, ContractInterface, getDefaultProvider, utils,
 } from 'ethers';
 import axios from 'axios';
 import contracts from '@zkladder/zkladder-contracts';
 import InfuraIpfs from './infuraIpfs';
 import { ERC721MembershipV2ReadOnly, ERC721MembershipV2 } from '../modules/ERC721MembershipV2';
 import {
-  NftDeploymentArgs, NftMintVoucher, NftConstructorArgsFull, NftConstructorArgsReadOnly,
+  NftDeploymentArgs, NftMintVoucher, NftConstructorArgsFull, NftConstructorArgsReadOnly, TierWithMetadata,
 } from '../interfaces/memberNftV2';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
 import { parseTransactionData } from '../utils/contract/conversions';
 import { NftTokenData } from '../interfaces/nft';
 import formatNftVoucher from '../utils/vouchers/memberNftV2';
-import { validateConstructorParams } from '../utils/contract/validators';
+import { validateInitializerParams } from '../utils/contract/validators';
 import applyMixins from '../utils/mixins/applyMixins';
 import getNetworkById from '../constants/networks';
 
@@ -71,6 +71,22 @@ class MemberNftV2ReadOnly extends ERC721MembershipV2ReadOnly {
       symbol,
       beneficiaryAddress,
       ...collectionData,
+    };
+  }
+
+  /**
+   * Get membership tier data
+   * @param tierId
+   * @returns Tier data
+   */
+  public async getTier(tierId:number): Promise<TierWithMetadata> {
+    const tier = await this.tierInfo(tierId);
+    const metadataUrl = this.ipfsModule.getGatewayUrl(tier.tierURI);
+    // @TODO Potentially refactor to use ipfs /cat
+    const response = await axios.get(metadataUrl);
+    const metadata = response.data;
+    return {
+      ...tier, ...metadata,
     };
   }
 
@@ -165,19 +181,20 @@ class MemberNftV2 {
   public static async setup<T extends NftConstructorArgsFull | NftConstructorArgsReadOnly>(options:T): Promise<ReturnType<T>> {
     if ('provider' in options) {
       const memberNft = new MemberNftV2(constructorGuard, options as NftConstructorArgsFull);
-      const { abi } = contracts('4');
+      const { abi } = contracts('3');
       memberNft.registerAbi(abi);
       return memberNft as ReturnType<T>;
     } if ('chainId' in options) {
       const memberNftReadOnly = new MemberNftV2ReadOnly(constructorGuard, options as NftConstructorArgsReadOnly);
-      const { abi } = contracts('4');
+      const { abi } = contracts('3');
       memberNftReadOnly.registerAbi(abi);
       return memberNftReadOnly as ReturnType<T>;
     } throw new Error('Must pass in either valid provider or chainId');
   }
 
   /**
- * Deploys a new MemberNft smart contract to the currently connected chain
+ * Deploys a new proxy instance of MemberNftV2
+ * @remarks This function deploys only an upgradeable proxy and requires that the implementation contract already be deployed
  * @param options.provider Valid ethers Wallet instance or EIP-1193 compliant provider object
  * @param options.collectionData NFT collection metadata fields.
  * @param options.infuraIpfs.projectId Infura IPFS project ID. ZKL tech team will provide this value
@@ -188,6 +205,15 @@ class MemberNftV2 {
     const {
       provider, collectionData, infuraIpfs,
     } = options;
+
+    // Object containing abi, bytecode and other contract metadata
+    const memberNftContract = contracts('3');
+
+    // Throw an error if the implementation contract has not been deployed
+    if (await provider.request({
+      method: 'eth_getCode',
+      params: [memberNftContract.address],
+    }) === '0x') throw new Error('This contract is not yet available on this blockchain network');
 
     const { name, symbol, beneficiaryAddress } = collectionData;
 
@@ -207,14 +233,19 @@ class MemberNftV2 {
     const response = await ipfsModule.addFiles([{ file, fileName: `${symbol}.json` }]);
     const contractUri = `ipfs://${response[0].Hash}`;
 
-    // Validate constructor inputs
-    const { abi, bytecode } = contracts('4');
-    validateConstructorParams(abi, [name, symbol, contractUri, beneficiaryAddress]);
+    // Validate initializer inputs
+    validateInitializerParams(memberNftContract.abi, [name, symbol, contractUri, beneficiaryAddress]);
 
-    // Create contract object and deploy
+    // Encode proxy contract initializer with constructor params
+    const initializeAbi = [memberNftContract.initializer];
+    const iface = new utils.Interface(initializeAbi);
+    const abiEncoded = iface.encodeFunctionData('initialize', [name, symbol, contractUri, beneficiaryAddress]);
+
+    // Create proxy contract factory and deploy
+    const proxyContract = contracts('2');
     const signer = Signer.isSigner(provider) ? provider : new providers.Web3Provider(provider).getSigner();
-    const factory = new ContractFactory(abi, bytecode, signer);
-    const { address, deployTransaction } = await factory.deploy(name, symbol, contractUri, beneficiaryAddress);
+    const factory = new ContractFactory(proxyContract.abi, proxyContract.bytecode, signer);
+    const { address, deployTransaction } = await factory.deploy(memberNftContract.address, abiEncoded);
 
     return {
       address,
@@ -269,7 +300,7 @@ class MemberNftV2 {
    * @returns Unmined mint transaction
    */
   public async mintTo(to:string, metadata:{ tierId:number, [key: string]: any }) {
-    const { name: tierName } = await this.tierInfo(metadata.tierId);
+    const { name: tierName } = await this.getTier(metadata.tierId);
     const currentBalance = await this.totalSupply();
     const file = new Blob([JSON.stringify({ tierName, ...metadata })], { type: 'application/json' });
     const response = await this.ipfsModule.addFiles([{ file, fileName: `${currentBalance}.json` }]);
@@ -285,7 +316,7 @@ class MemberNftV2 {
    * @returns Unmined mint transaction
    */
   public async mint(voucher:NftMintVoucher, metadata:{ tierId:number, [key: string]: any }) {
-    const { name: tierName } = await this.tierInfo(metadata.tierId);
+    const { name: tierName } = await this.getTier(metadata.tierId);
     const currentBalance = await this.totalSupply();
     const file = new Blob([JSON.stringify({ tierName, ...metadata })], { type: 'application/json' });
     const response = await this.ipfsModule.addFiles([{ file, fileName: `${currentBalance}.json` }]);

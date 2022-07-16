@@ -1,5 +1,5 @@
 import {
-  providers, Contract, ContractFactory, Signer, BigNumber, getDefaultProvider,
+  providers, Contract, ContractFactory, Signer, BigNumber, getDefaultProvider, utils,
 } from 'ethers';
 import contracts from '@zkladder/zkladder-contracts';
 import { MemberNftV2, MemberNftV2ReadOnly } from '../../src/services/memberNftV2';
@@ -8,7 +8,7 @@ import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction'
 import { EthereumAddress, isEthereumAddress } from '../../src/interfaces/address';
 import { parseTransactionData, ethToWei } from '../../src/utils/contract/conversions';
 import nftVoucher from '../../src/utils/vouchers/memberNftV2';
-import { validateConstructorParams } from '../../src/utils/contract/validators';
+import { validateInitializerParams } from '../../src/utils/contract/validators';
 
 jest.mock('@zkladder/zkladder-contracts', () => (jest.fn()));
 jest.mock('../../src/utils/api/getNftMintVoucher', () => (jest.fn()));
@@ -21,6 +21,9 @@ jest.mock('ethers', () => ({
   Signer: { isSigner: jest.fn() },
   BigNumber: { from: jest.fn(() => ('mockBigNumber')) },
   getDefaultProvider: jest.fn(),
+  utils: {
+    Interface: jest.fn(),
+  },
 }));
 jest.mock('../../src/services/infuraIpfs', () => (jest.fn(() => ({
   addFiles: () => ([{ Hash: 'QMmockcid' }]),
@@ -43,7 +46,7 @@ jest.mock('axios', () => ({
 }));
 
 jest.mock('../../src/utils/contract/validators', () => ({
-  validateConstructorParams: jest.fn(),
+  validateInitializerParams: jest.fn(),
 }));
 
 jest.mock('../../src/constants/networks', () => (jest.fn(() => ({
@@ -64,7 +67,8 @@ const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransactionData = parseTransactionData as jest.Mocked<any>;
 const mockEthToWei = ethToWei as jest.Mocked<any>;
 const mockNftVoucher = nftVoucher as jest.Mocked<any>;
-const mockValidateConstructorParams = validateConstructorParams as jest.Mocked<any>;
+const mockValiateInitializerParams = validateInitializerParams as jest.Mocked<any>;
+const mockInterface = utils.Interface as jest.Mocked<any>;
 
 describe('MemberNftV1Factory tests', () => {
   const mockProvider = { send: jest.fn(), getSigner: jest.fn(() => ('mockSigner')) };
@@ -85,6 +89,7 @@ describe('MemberNftV1Factory tests', () => {
     mockSigner.isSigner.mockReturnValueOnce(true);
     const nft = await MemberNftV2.setup({ ...setupParams, provider: 'mockProvider' });
 
+    expect(mockContracts).toHaveBeenCalledWith('3');
     expect(mockProviders.Web3Provider).toHaveBeenCalledTimes(0);
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockProvider');
@@ -99,6 +104,7 @@ describe('MemberNftV1Factory tests', () => {
     mockSigner.isSigner.mockReturnValueOnce(false);
     const nft = await MemberNftV2.setup({ ...setupParams, provider: 'mockProvider' });
 
+    expect(mockContracts).toHaveBeenCalledWith('3');
     expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(1);
     expect(mockContract).toHaveBeenCalledWith('0x123456789', 'mockAbi', 'mockSigner');
@@ -149,11 +155,17 @@ describe('MemberNftV1Factory tests', () => {
       projectSecret: 'mockSecret',
     };
 
+    const provider = {
+      request: jest.fn(() => '0x12345'),
+    };
+
+    const encodeFunctionData = jest.fn(() => ('mockInitializer'));
+    mockInterface.mockReturnValue({ encodeFunctionData });
     const mockDeploy = jest.fn(() => ({
       address: 'newcontractaddress',
       deployTransaction: 'mockDeployTransaction',
     }));
-    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode', address: '0xmocklogicaddress' });
     mockContractFactory.mockImplementation(() => ({
       deploy: mockDeploy,
     }));
@@ -161,17 +173,22 @@ describe('MemberNftV1Factory tests', () => {
     mockSigner.isSigner.mockReturnValueOnce(true);
 
     const nft = await MemberNftV2.deploy({
-      provider: 'mockProvider',
+      provider,
       collectionData,
       infuraIpfs,
     });
 
-    expect(mockContracts).toHaveBeenCalledWith('4');
-    expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockProvider');
-    expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser');
+    expect(mockContracts).toHaveBeenCalledWith('3');
+    expect(provider.request).toHaveBeenCalledWith({
+      method: 'eth_getCode',
+      params: ['0xmocklogicaddress'],
+    });
+    expect(mockContracts).toHaveBeenCalledWith('2');
+    expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', provider);
+    expect(mockDeploy).toHaveBeenCalledWith('0xmocklogicaddress', 'mockInitializer');
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(0);
     expect(mockParseTransactionData).toHaveBeenCalledWith('mockDeployTransaction');
-    expect(mockValidateConstructorParams).toHaveBeenCalledWith('mockAbi', ['ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser']);
+    expect(mockValiateInitializerParams).toHaveBeenCalledWith('mockAbi', ['ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser']);
     expect(nft).toStrictEqual({
       address: 'newcontractaddress',
       transaction: { mock: 'result' },
@@ -192,11 +209,19 @@ describe('MemberNftV1Factory tests', () => {
       projectId: 'mockId',
       projectSecret: 'mockSecret',
     };
+
+    const provider = {
+      request: jest.fn(() => '0x12345'),
+    };
+
+    const encodeFunctionData = jest.fn(() => ('mockInitializer'));
+    mockInterface.mockReturnValue({ encodeFunctionData });
+
     const mockDeploy = jest.fn(() => ({
       address: 'newcontractaddress',
       deployTransaction: 'mockDeployTransaction',
     }));
-    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode' });
+    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode', address: '0xmocklogicaddress' });
     mockContractFactory.mockImplementation(() => ({
       deploy: mockDeploy,
     }));
@@ -204,22 +229,57 @@ describe('MemberNftV1Factory tests', () => {
     mockSigner.isSigner.mockReturnValueOnce(false);
 
     const nft = await MemberNftV2.deploy({
-      provider: 'mockProvider',
+      provider,
       collectionData,
       infuraIpfs,
     });
 
-    expect(mockContracts).toHaveBeenCalledWith('4');
+    expect(mockContracts).toHaveBeenCalledWith('3');
+    expect(mockContracts).toHaveBeenCalledWith('2');
+    expect(provider.request).toHaveBeenCalledWith({
+      method: 'eth_getCode',
+      params: ['0xmocklogicaddress'],
+    });
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockSigner');
-    expect(mockDeploy).toHaveBeenCalledWith('ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser');
+    expect(mockDeploy).toHaveBeenCalledWith('0xmocklogicaddress', 'mockInitializer');
     expect(mockParseTransactionData).toHaveBeenCalledWith('mockDeployTransaction');
-    expect(mockProviders.Web3Provider).toHaveBeenCalledWith('mockProvider');
+    expect(mockProviders.Web3Provider).toHaveBeenCalledWith(provider);
     expect(mockProvider.getSigner).toHaveBeenCalledTimes(1);
-    expect(mockValidateConstructorParams).toHaveBeenCalledWith('mockAbi', ['ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser']);
+    expect(mockValiateInitializerParams).toHaveBeenCalledWith('mockAbi', ['ZKLTest', 'MOCK', 'ipfs://QMmockcid', '0xuser']);
     expect(nft).toStrictEqual({
       address: 'newcontractaddress',
       transaction: { mock: 'result' },
     });
+  });
+
+  test('deploy function throws if no implementation contract deployed', async () => {
+    const collectionData = {
+      name: 'ZKLTest',
+      symbol: 'MOCK',
+      beneficiaryAddress: '0xuser',
+      image: 'ipfs://123456789',
+      description: 'mockDescription',
+      roles: [],
+    };
+
+    const infuraIpfs = {
+      projectId: 'mockId',
+      projectSecret: 'mockSecret',
+    };
+
+    const provider = {
+      request: jest.fn(() => '0x'),
+    };
+
+    mockContracts.mockReturnValue({ abi: 'mockAbi', bytecode: 'mockBytecode', address: '0xmocklogicaddress' });
+
+    expect(async () => {
+      await MemberNftV2.deploy({
+        provider,
+        collectionData,
+        infuraIpfs,
+      });
+    }).rejects.toThrow(new Error('This contract is not yet available on this blockchain network'));
   });
 });
 
@@ -249,6 +309,28 @@ describe('MemberNftV1ReadOnly service tests', () => {
       name: 'MOCKNAME',
       symbol: 'MOCKSYMBOL',
       beneficiaryAddress: '0xtokenHolder',
+      mock: 'metadata',
+    });
+  });
+
+  test('getTier correctly calls dependencies and returns results', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'tierInfo').mockImplementationOnce(() => (Promise.resolve({
+      tierURI: 'mockTierURI',
+      salePrice: 100,
+      isTransferable: false,
+      royaltyBasis: 100,
+    })));
+
+    const tierInfo = await memberNft.getTier(123);
+
+    expect(memberNft.tierInfo).toHaveBeenCalledWith(123);
+
+    expect(tierInfo).toStrictEqual({
+      tierURI: 'mockTierURI',
+      salePrice: 100,
+      isTransferable: false,
+      royaltyBasis: 100,
       mock: 'metadata',
     });
   });
@@ -363,13 +445,13 @@ describe('MemberNftV1 service tests', () => {
     const mockMintToWithUri = jest.fn();
     jest.spyOn(memberNft as any, 'totalSupply').mockImplementationOnce(() => (5));
     jest.spyOn(memberNft as any, 'mintToWithUri').mockImplementationOnce(mockMintToWithUri);
-    jest.spyOn(memberNft, 'tierInfo').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
+    jest.spyOn(memberNft, 'getTier').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
 
     mockMintToWithUri.mockResolvedValue({ mock: 'result' });
 
     const mintTx = await memberNft.mintTo('0xuser', { tierId: 3, test: 'metadata' });
 
-    expect((memberNft as any).tierInfo).toHaveBeenCalledWith(3);
+    expect((memberNft as any).getTier).toHaveBeenCalledWith(3);
     expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
     expect((memberNft as any).mintToWithUri).toHaveBeenCalledWith('0xuser', 3, 'ipfs://QMmockcid');
     expect(mintTx).toStrictEqual({ mock: 'result' });
@@ -379,14 +461,14 @@ describe('MemberNftV1 service tests', () => {
     const memberNft = await MemberNftV2.setup(setupParams);
     jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
     jest.spyOn(memberNft as any, 'mintWithUri').mockImplementationOnce(() => (Promise.resolve({ mock: 'result' })));
-    jest.spyOn(memberNft, 'tierInfo').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
+    jest.spyOn(memberNft, 'getTier').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
 
     const voucher = {
       balance: 15, minter: '0xuser123', signature: '0xsignedData', tierId: 2,
     };
     const mintTx = await memberNft.mint(voucher, { tierId: 2, test: 'metadata' });
 
-    expect((memberNft as any).tierInfo).toHaveBeenCalledWith(2);
+    expect((memberNft as any).getTier).toHaveBeenCalledWith(2);
     expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
     expect((memberNft as any).mintWithUri).toHaveBeenCalledWith(voucher, 'ipfs://QMmockcid');
     expect(mintTx).toStrictEqual({ mock: 'result' });

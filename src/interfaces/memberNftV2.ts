@@ -15,6 +15,7 @@ interface NftDeploymentArgs {
     beneficiaryAddress: string,
     image?:string,
     description?:string,
+    external_link?:string,
     script?:string,
   }
   infuraIpfs:{
@@ -24,10 +25,16 @@ interface NftDeploymentArgs {
 }
 
 interface Tier {
-  name:string,
+  tierURI:string,
   royaltyBasis: number,
   salePrice:number,
   isTransferable: boolean
+}
+
+interface TierWithMetadata extends Tier {
+  name: string,
+  description?:string,
+  image?: string
 }
 
 interface TierUpdate {
@@ -36,5 +43,5 @@ interface TierUpdate {
 }
 
 export {
-  NftMintVoucher, NftDeploymentArgs, Role, NftConstructorArgsFull, NftConstructorArgsReadOnly, Tier, TierUpdate,
+  NftMintVoucher, NftDeploymentArgs, Role, NftConstructorArgsFull, NftConstructorArgsReadOnly, Tier, TierWithMetadata, TierUpdate,
 };

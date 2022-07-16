@@ -1,5 +1,5 @@
 import {
-  validateString, validateNumber, validateBoolean, validateAddress, validateConstructorParams,
+  validateString, validateNumber, validateBoolean, validateAddress, validateConstructorParams, validateInitializerParams,
 } from '../../../src/utils/contract/validators';
 
 describe('Validators tests', () => {
@@ -84,6 +84,57 @@ describe('validateConstructorParams tests', () => {
     ];
     expect(() => {
       validateConstructorParams(mockAbi, ['test', true, 123, '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B']);
+    }).not.toThrow();
+  });
+});
+
+describe('validateInitializerParams tests', () => {
+  test('ABI with no initializer', () => {
+    expect(() => {
+      validateInitializerParams([], []);
+    }).toThrow('Contract does not have an initializer');
+  });
+
+  test('Incorrect number of params', () => {
+    const mockAbi = [
+      { name: 'initialize', inputs: [1, 2, 3, 4] },
+    ];
+    expect(() => {
+      validateInitializerParams(mockAbi, [1, 2, 3]);
+    }).toThrow('Incorrect number of params');
+  });
+
+  test('One of the parameters is invalid', () => {
+    const mockAbi = [
+      {
+        name: 'initialize',
+        inputs: [
+          { type: 'string' },
+          { type: 'bool' },
+          { type: 'uint' },
+          { type: 'address' },
+        ],
+      },
+    ];
+    expect(() => {
+      validateInitializerParams(mockAbi, ['test', true, 123, 'fakeaddress']);
+    }).toThrow('Constructor param at index 3 is not a valid address');
+  });
+
+  test('All parameters are valid', () => {
+    const mockAbi = [
+      {
+        name: 'initialize',
+        inputs: [
+          { type: 'string' },
+          { type: 'bool' },
+          { type: 'uint' },
+          { type: 'address' },
+        ],
+      },
+    ];
+    expect(() => {
+      validateInitializerParams(mockAbi, ['test', true, 123, '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B']);
     }).not.toThrow();
   });
 });
