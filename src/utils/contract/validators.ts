@@ -46,8 +46,29 @@ const validateConstructorParams = (contractABI:any[], constructParams:any[]) => 
   });
 };
 
+/**
+ * Used in place of validateConstructorParams, when validating upgradeable contracts
+  @param contractABI - ABI of smart contract to validate
+  @param initializerParams - array of params in the correct order
+ */
+const validateInitializerParams = (contractABI:any[], initializerParams:any[]) => {
+  const initializer = contractABI.find((func) => func.name === 'initialize');
+  if (!initializer) throw new Error('Contract does not have an initializer');
+
+  if (initializer.inputs.length !== initializerParams.length) throw new Error('Incorrect number of params');
+
+  initializerParams.forEach((param, index) => {
+    const abiDefinedType = initializer.inputs?.[index]?.type;
+    if (abiDefinedType === 'string' && !validateString(param)) throw new Error(`Constructor param at index ${index} is not a valid ${abiDefinedType}`);
+    else if (abiDefinedType === 'bool' && !validateBoolean(param)) throw new Error(`Constructor param at index ${index} is not a valid ${abiDefinedType}`);
+    else if (abiDefinedType === 'address' && !validateAddress(param)) throw new Error(`Constructor param at index ${index} is not a valid ${abiDefinedType}`);
+    else if (abiDefinedType.includes('uint') && !validateNumber(param)) throw new Error(`Constructor param at index ${index} is not a valid ${abiDefinedType}`);
+  });
+};
+
 export {
   validateConstructorParams,
+  validateInitializerParams,
 
   // exported for unit testing
   validateString,

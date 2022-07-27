@@ -99,7 +99,7 @@ describe('ERC721MembershipV2ReadOnly class', () => {
   test('tierInfo correctly calls dependencies and returns results', async () => {
     const nftWhitelisted = new ERC721MembershipV2ReadOnlyWrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.tierInfo.mockResolvedValueOnce({
-      name: 'tier1',
+      tierURI: 'tier1',
       royaltyBasis: { toNumber: () => (500) },
       salePrice: { toNumber: () => (100) },
       isTransferable: true,
@@ -110,7 +110,7 @@ describe('ERC721MembershipV2ReadOnly class', () => {
 
     expect(ethersNftLazyMintAbstraction.tierInfo).toHaveBeenCalledWith(1);
     expect(result).toEqual({
-      name: 'tier1',
+      tierURI: 'tier1',
       royaltyBasis: 500,
       salePrice: 100,
       isTransferable: true,
@@ -155,10 +155,10 @@ describe('ERC721MembershipV2 class', () => {
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
     const newTiers = [{
-      name: 'test', salePrice: 100, royaltyBasis: 500, isTransferable: true,
+      tierURI: 'test', salePrice: 100, royaltyBasis: 500, isTransferable: true,
     }];
 
-    const result = await nftWhitelisted.addTiers(newTiers);
+    const result = await nftWhitelisted.addTiersWithUri(newTiers);
 
     expect((nftWhitelisted as any).onlyRole).toHaveBeenCalledWith('DEFAULT_ADMIN_ROLE');
     expect(ethersNftLazyMintAbstraction.addTiers).toHaveBeenCalledWith(newTiers);
@@ -174,11 +174,11 @@ describe('ERC721MembershipV2 class', () => {
     const newTiers = [{
       tierId: 1,
       tierUpdates: {
-        name: 'test', salePrice: 100, royaltyBasis: 500, isTransferable: true,
+        tierURI: 'test', salePrice: 100, royaltyBasis: 500, isTransferable: true,
       },
     }];
 
-    const result = await nftWhitelisted.updateTiers(newTiers);
+    const result = await nftWhitelisted.updateTiersWithUri(newTiers);
 
     expect((nftWhitelisted as any).onlyRole).toHaveBeenCalledWith('DEFAULT_ADMIN_ROLE');
     expect(ethersNftLazyMintAbstraction.updateTiers).toHaveBeenCalledWith(newTiers);
