@@ -181,7 +181,7 @@ describe('MemberNftV1Factory tests', () => {
     expect(mockContracts).toHaveBeenCalledWith('3');
     expect(provider.request).toHaveBeenCalledWith({
       method: 'eth_getCode',
-      params: ['0xmocklogicaddress'],
+      params: ['0xmocklogicaddress', 'latest'],
     });
     expect(mockContracts).toHaveBeenCalledWith('2');
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', provider);
@@ -238,7 +238,7 @@ describe('MemberNftV1Factory tests', () => {
     expect(mockContracts).toHaveBeenCalledWith('2');
     expect(provider.request).toHaveBeenCalledWith({
       method: 'eth_getCode',
-      params: ['0xmocklogicaddress'],
+      params: ['0xmocklogicaddress', 'latest'],
     });
     expect(mockContractFactory).toHaveBeenCalledWith('mockAbi', 'mockBytecode', 'mockSigner');
     expect(mockDeploy).toHaveBeenCalledWith('0xmocklogicaddress', 'mockInitializer');

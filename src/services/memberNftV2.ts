@@ -212,7 +212,7 @@ class MemberNftV2 {
     // Throw an error if the implementation contract has not been deployed
     if (await provider.request({
       method: 'eth_getCode',
-      params: [memberNftContract.address],
+      params: [memberNftContract.address, 'latest'],
     }) === '0x') throw new Error('This contract is not yet available on this blockchain network');
 
     const { name, symbol, beneficiaryAddress } = collectionData;
