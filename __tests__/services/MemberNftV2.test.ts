@@ -1,5 +1,5 @@
 import {
-  providers, Contract, ContractFactory, Signer, BigNumber, getDefaultProvider, utils,
+  providers, Contract, ContractFactory, Signer, getDefaultProvider, utils,
 } from 'ethers';
 import contracts from '@zkladder/zkladder-contracts';
 import { MemberNftV2, MemberNftV2ReadOnly } from '../../src/services/memberNftV2';
@@ -327,12 +327,38 @@ describe('MemberNftV1ReadOnly service tests', () => {
     expect(memberNft.tierInfo).toHaveBeenCalledWith(123);
 
     expect(tierInfo).toStrictEqual({
+      tierId: 123,
       tierURI: 'mockTierURI',
       salePrice: 100,
       isTransferable: false,
       royaltyBasis: 100,
       mock: 'metadata',
     });
+  });
+
+  test('getTiers correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'totalTiers').mockImplementationOnce(() => (Promise.resolve(5)));
+    jest.spyOn(memberNft, 'getTier').mockImplementation((id) => (Promise.resolve({
+      tierId: id,
+    } as any)));
+
+    const tiers = await memberNft.getTiers();
+
+    expect(memberNft.totalTiers).toHaveBeenCalledTimes(1);
+    expect(memberNft.getTier).toHaveBeenCalledWith(0);
+    expect(memberNft.getTier).toHaveBeenCalledWith(1);
+    expect(memberNft.getTier).toHaveBeenCalledWith(2);
+    expect(memberNft.getTier).toHaveBeenCalledWith(3);
+    expect(memberNft.getTier).toHaveBeenCalledWith(4);
+
+    expect(tiers).toStrictEqual([
+      { tierId: 0 },
+      { tierId: 1 },
+      { tierId: 2 },
+      { tierId: 3 },
+      { tierId: 4 },
+    ]);
   });
 
   test('getToken correctly calls dependencies and returns results', async () => {
@@ -425,7 +451,6 @@ describe('MemberNftV1 service tests', () => {
     jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
     jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKZKL')));
     jest.spyOn(memberNft, 'tierInfo').mockImplementationOnce(() => (null as any));
-    mockEthToWei.mockReturnValueOnce(BigNumber.from(100000000));
     jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(10)));
     jest.spyOn(memberNft as any, 'getPrimaryAccount').mockImplementationOnce(() => (Promise.resolve(['0x12345'])));
     jest.spyOn(memberNft, 'signTypedData' as any).mockImplementation(() => ('0xsignedData'));
@@ -438,6 +463,100 @@ describe('MemberNftV1 service tests', () => {
     expect(result).toStrictEqual({
       balance: 15, minter: '0xuser123', tierId: 2, signature: '0xsignedData',
     });
+  });
+
+  test('addTiers function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'addTiersWithUri').mockImplementationOnce(() => (Promise.resolve('tx' as any)));
+    mockEthToWei.mockReturnValue('mockBigNumber');
+
+    const result = await memberNft.addTiers([
+      {
+        tierId: 1, name: 'one', description: 'one', image: 'one', salePrice: 100, isTransferable: false, royaltyBasis: 100,
+      },
+      {
+        tierId: 2, name: 'two', description: 'two', image: 'two', salePrice: 200, isTransferable: true, royaltyBasis: 200,
+      },
+      {
+        tierId: 3, name: 'three', description: 'three', image: 'three', salePrice: 300, isTransferable: false, royaltyBasis: 300,
+      },
+    ]);
+
+    expect(result).toStrictEqual('tx');
+    expect(memberNft.addTiersWithUri).toHaveBeenCalledWith([{
+      tierURI: 'ipfs://QMmockcid',
+      salePrice: 'mockBigNumber',
+      isTransferable: false,
+      royaltyBasis: 100,
+    },
+    {
+      tierURI: 'ipfs://QMmockcid',
+      salePrice: 'mockBigNumber',
+      isTransferable: true,
+      royaltyBasis: 200,
+    },
+    {
+      tierURI: 'ipfs://QMmockcid',
+      salePrice: 'mockBigNumber',
+      isTransferable: false,
+      royaltyBasis: 300,
+    }]);
+  });
+
+  test('updateTiers function correctly calls dependencies and returns result', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'updateTiersWithUri').mockImplementationOnce(() => (Promise.resolve('tx' as any)));
+    mockEthToWei.mockReturnValue('mockBigNumber');
+
+    const result = await memberNft.updateTiers([
+      {
+        tierId: 1,
+        tierUpdates: {
+          tierId: 1, name: 'one', description: 'one', image: 'one', salePrice: 100, isTransferable: false, royaltyBasis: 100,
+        },
+      },
+      {
+        tierId: 2,
+        tierUpdates: {
+          tierId: 2, name: 'two', description: 'two', image: 'two', salePrice: 200, isTransferable: true, royaltyBasis: 200,
+        },
+      },
+      {
+        tierId: 3,
+        tierUpdates: {
+          tierId: 3, name: 'three', description: 'three', image: 'three', salePrice: 300, isTransferable: false, royaltyBasis: 300,
+        },
+      },
+    ]);
+
+    expect(result).toStrictEqual('tx');
+    expect(memberNft.updateTiersWithUri).toHaveBeenCalledWith([{
+      tierId: 1,
+      tierUpdates: {
+        tierURI: 'ipfs://QMmockcid',
+        salePrice: 'mockBigNumber',
+        isTransferable: false,
+        royaltyBasis: 100,
+      },
+    },
+    {
+      tierId: 2,
+      tierUpdates: {
+        tierURI: 'ipfs://QMmockcid',
+        salePrice: 'mockBigNumber',
+        isTransferable: true,
+        royaltyBasis: 200,
+      },
+    },
+    {
+      tierId: 3,
+      tierUpdates: {
+        tierURI: 'ipfs://QMmockcid',
+        salePrice: 'mockBigNumber',
+        isTransferable: false,
+        royaltyBasis: 300,
+      },
+    }]);
   });
 
   test('mintTo function correctly calls dependencies and returns result', async () => {

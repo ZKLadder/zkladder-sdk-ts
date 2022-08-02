@@ -25,13 +25,14 @@ interface NftDeploymentArgs {
 }
 
 interface Tier {
-  tierURI:string,
+  tierURI?:string,
   royaltyBasis: number,
-  salePrice:number,
+  salePrice: number,
   isTransferable: boolean
 }
 
 interface TierWithMetadata extends Tier {
+  tierId:number,
   name: string,
   description?:string,
   image?: string
