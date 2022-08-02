@@ -10,7 +10,7 @@ import {
 } from '../interfaces/memberNftV2';
 import getNftMintVoucher from '../utils/api/getNftMintVoucher';
 import { EthereumAddress, isEthereumAddress } from '../interfaces/address';
-import { parseTransactionData } from '../utils/contract/conversions';
+import { ethToWei, parseTransactionData } from '../utils/contract/conversions';
 import { NftTokenData } from '../interfaces/nft';
 import formatNftVoucher from '../utils/vouchers/memberNftV2';
 import { validateInitializerParams } from '../utils/contract/validators';
@@ -81,13 +81,27 @@ class MemberNftV2ReadOnly extends ERC721MembershipV2ReadOnly {
    */
   public async getTier(tierId:number): Promise<TierWithMetadata> {
     const tier = await this.tierInfo(tierId);
-    const metadataUrl = this.ipfsModule.getGatewayUrl(tier.tierURI);
+    const metadataUrl = this.ipfsModule.getGatewayUrl(tier.tierURI as string);
     // @TODO Potentially refactor to use ipfs /cat
     const response = await axios.get(metadataUrl);
     const metadata = response.data;
     return {
-      ...tier, ...metadata,
+      tierId, ...tier, ...metadata,
     };
+  }
+
+  /**
+   * Returns array of all membership tiers
+   * @returns Array tier objects with metadata
+   */
+  public async getTiers(): Promise<TierWithMetadata[]> {
+    const total = await this.totalTiers();
+    const promises = [];
+    for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
+      promises.push(this.getTier(tokenIndex));
+    }
+    const results = await Promise.all(promises);
+    return results;
   }
 
   /**
@@ -290,6 +304,71 @@ class MemberNftV2 {
       contractAddress: this.address, userAddress: minter, chainId, roleId,
     });
     return voucher;
+  }
+
+  /**
+   * Adds new member tiers to smart contract
+   * @param newTiers Array of tier objects to add
+   * @remarks Caller of this function must be assigned DEFAULT_ADMIN_ROLE
+   * @returns Unmined transaction
+   */
+  public async addTiers(newTiers: TierWithMetadata[]) {
+    const promises:any = [];
+
+    newTiers.forEach((tier) => {
+      const uploadMetadata = async () => {
+        const { name, description, image } = tier;
+        const file = new Blob([JSON.stringify({ name, description, image })], { type: 'application/json' });
+        const response = await this.ipfsModule.addFiles([{ file, fileName: `${name}.json` }]);
+        return `ipfs://${response[0].Hash}`;
+      };
+
+      promises.push(uploadMetadata());
+    });
+
+    const tiersWithUri = (await Promise.all(promises)).map((tierURI, index) => ({
+      tierURI,
+      isTransferable: newTiers[index].isTransferable,
+      salePrice: ethToWei(newTiers[index].salePrice as number),
+      royaltyBasis: newTiers[index].royaltyBasis,
+    }));
+
+    const tx = await this.addTiersWithUri(tiersWithUri as any);
+    return tx;
+  }
+
+  /**
+   * Updates existing tier data
+   * @param tierUpdates Array of tier update objects
+   * @remarks Caller of this function must be assigned DEFAULT_ADMIN_ROLE
+   * @returns Unmined transaction
+   */
+  public async updateTiers(updates: { tierId:number, tierUpdates:TierWithMetadata }[]) {
+    const promises:any = [];
+
+    updates.forEach(({ tierUpdates }) => {
+      const uploadMetadata = async () => {
+        const { name, description, image } = tierUpdates;
+        const file = new Blob([JSON.stringify({ name, description, image })], { type: 'application/json' });
+        const response = await this.ipfsModule.addFiles([{ file, fileName: `${name}.json` }]);
+        return `ipfs://${response[0].Hash}`;
+      };
+
+      promises.push(uploadMetadata());
+    });
+
+    const updatesWithUri = (await Promise.all(promises)).map((tierURI, index) => ({
+      tierId: updates[index].tierId,
+      tierUpdates: {
+        tierURI,
+        isTransferable: updates[index].tierUpdates.isTransferable,
+        salePrice: ethToWei(updates[index].tierUpdates.salePrice as number),
+        royaltyBasis: updates[index].tierUpdates.royaltyBasis,
+      },
+    }));
+
+    const tx = await this.updateTiersWithUri(updatesWithUri as any);
+    return tx;
   }
 
   /**
