@@ -1,6 +1,5 @@
 import { utils } from 'ethers';
 import { ethToWei } from '../utils/contract/conversions';
-import { isEthereumAddress } from '../interfaces/address';
 import { AccessConditionsOptions } from '../interfaces/accessSchema';
 
 /*
@@ -15,7 +14,7 @@ class AccessSchemaBuilder {
       accessSchema.forEach((accessCondition) => {
         AccessSchemaBuilder.validateAccessCondition(accessCondition);
       });
-      this.accessSchema = [...accessSchema];
+      this.accessSchema = structuredClone([...accessSchema]);
     } else this.accessSchema = [];
   }
 
@@ -79,10 +78,77 @@ class AccessSchemaBuilder {
     this.accessSchema.push(accessCondition);
   }
 
-  public updateAccessCondition(newAccessCondition:{ [key: string]: any }, index:number) {
+  public updateAccessCondition(options: {
+    key?:string,
+    chainId?:number,
+    minBalance?:number,
+    decimals?:number,
+    contractAddress?:string,
+    tokenId?:number | string,
+    whitelistedAddress?:string,
+    blacklistedAddress?:string,
+    operator?:'and' | 'or',
+    index:number }) {
+    const {
+      index,
+      chainId,
+      minBalance,
+      decimals,
+      contractAddress,
+      tokenId,
+      whitelistedAddress,
+      blacklistedAddress,
+      operator,
+      key: updatedKey,
+    } = options;
     if (index >= this.accessSchema.length) throw new Error('Invalid index');
-    AccessSchemaBuilder.validateAccessCondition(newAccessCondition);
-    this.accessSchema[index] = newAccessCondition;
+
+    if (index % 2 === 1 && operator) {
+      this.accessSchema[index] = { operator };
+      return;
+    }
+
+    const hasAddress = typeof contractAddress === 'string';
+
+    if (updatedKey === 'hasBalance' && chainId && minBalance) {
+      this.accessSchema[index] = AccessSchemaBuilder.formatHasBalance(chainId, minBalance);
+      return;
+    }
+
+    if (updatedKey === 'hasBalanceERC20' && chainId && hasAddress && minBalance && decimals) {
+      this.accessSchema[index] = AccessSchemaBuilder.formatHasBalanceERC20(chainId, contractAddress, minBalance, decimals);
+      return;
+    }
+
+    if (updatedKey === 'hasERC721' && chainId && hasAddress) {
+      this.accessSchema[index] = AccessSchemaBuilder.formatHasERC721(chainId, contractAddress);
+      return;
+    }
+
+    if (updatedKey === 'hasERC1155' && chainId && hasAddress) {
+      this.accessSchema[index] = AccessSchemaBuilder.formatHasERC1155(chainId, contractAddress, tokenId || 0);
+      return;
+    }
+
+    if (updatedKey === 'isWhitelisted' && chainId && typeof whitelistedAddress === 'string') {
+      this.accessSchema[index] = AccessSchemaBuilder.formatIsWhitelisted(chainId, whitelistedAddress);
+      return;
+    }
+
+    if (updatedKey === 'isBlacklisted' && chainId && typeof blacklistedAddress === 'string') {
+      this.accessSchema[index] = AccessSchemaBuilder.formatIsBlacklisted(chainId, blacklistedAddress);
+      return;
+    }
+
+    if (chainId) this.accessSchema[index].chainId = chainId;
+    if (typeof whitelistedAddress === 'string' && this.accessSchema[index].key === 'isWhitelisted') this.accessSchema[index].returnValueTest.value = whitelistedAddress;
+    if (typeof blacklistedAddress === 'string' && this.accessSchema[index].key === 'isBlacklisted') this.accessSchema[index].returnValueTest.value = blacklistedAddress;
+    if (tokenId && this.accessSchema[index].key === 'hasERC1155') this.accessSchema[index].parameters[1] = tokenId;
+    if (typeof contractAddress === 'string') this.accessSchema[index].contractAddress = contractAddress;
+    if (minBalance?.toString() && this.accessSchema[index].key === 'hasBalance') {
+      this.accessSchema[index].returnValueTest.value = ethToWei(minBalance).toString();
+    }
+    if (minBalance?.toString() && decimals && this.accessSchema[index].key === 'hasBalanceERC20') this.accessSchema[index].returnValueTest.value = utils.parseUnits(minBalance.toString(), decimals).toString();
   }
 
   public deleteAccessCondition(index:number) {
@@ -103,7 +169,7 @@ class AccessSchemaBuilder {
     if (!accessCondition.returnValueTest) throw new Error('Schema has incorrectly formatted returnValueTest');
     if (!accessCondition.parameters) throw new Error('Schema is missing function or method params');
     if (accessCondition.functionName && !accessCondition.functionAbi) throw new Error('Schema has incorrectly formatted functionAbi');
-    if (!accessCondition.functionName && !accessCondition.method) throw new Error('Schema is missing function or method name');
+    if (!accessCondition.functionName && !accessCondition.method && !accessCondition.key) throw new Error('Schema is missing function or method name');
     return true;
   }
 
@@ -114,6 +180,7 @@ class AccessSchemaBuilder {
 
   public static formatHasBalance(chainId:number, minBalance:number) {
     return {
+      key: 'hasBalance',
       contractAddress: '',
       chainId,
       method: 'eth_getBalance',
@@ -129,8 +196,8 @@ class AccessSchemaBuilder {
   }
 
   public static formatHasBalanceERC20(chainId:number, contractAddress:string, minBalance:number, decimals:number) {
-    isEthereumAddress(contractAddress);
     return {
+      key: 'hasBalanceERC20',
       contractAddress,
       chainId,
       functionName: 'balanceOf',
@@ -162,8 +229,8 @@ class AccessSchemaBuilder {
   }
 
   public static formatHasERC721(chainId:number, contractAddress:string) {
-    isEthereumAddress(contractAddress);
     return {
+      key: 'hasERC721',
       contractAddress,
       chainId,
       functionName: 'balanceOf',
@@ -194,9 +261,9 @@ class AccessSchemaBuilder {
     };
   }
 
-  public static formatHasERC1155(chainId:number, contractAddress:string, tokenId:number) {
-    isEthereumAddress(contractAddress);
+  public static formatHasERC1155(chainId:number, contractAddress:string, tokenId:number | string) {
     return {
+      key: 'hasERC1155',
       contractAddress,
       chainId,
       functionName: 'balanceOf',
@@ -233,11 +300,10 @@ class AccessSchemaBuilder {
   }
 
   public static formatIsWhitelisted(chainId:number, whitelistedAddress:string) {
-    isEthereumAddress(whitelistedAddress);
     return {
+      key: 'isWhitelisted',
       contractAddress: '',
       chainId,
-      method: 'whitelist',
       parameters: [
         ':userAddress',
       ],
@@ -249,11 +315,10 @@ class AccessSchemaBuilder {
   }
 
   public static formatIsBlacklisted(chainId:number, blacklistedAddress:string) {
-    isEthereumAddress(blacklistedAddress);
     return {
+      key: 'isBlacklisted',
       contractAddress: '',
       chainId,
-      method: 'blacklist',
       parameters: [
         ':userAddress',
       ],
@@ -266,9 +331,9 @@ class AccessSchemaBuilder {
 
   public static formatTimelock(chainId:number, timestamp:number, comparator: string) {
     return {
+      key: 'timelock',
       contractAddress: '',
       chainId,
-      method: 'timelock',
       parameters: [],
       returnValueTest: {
         comparator,

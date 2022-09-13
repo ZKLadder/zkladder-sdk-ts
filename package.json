@@ -24,6 +24,7 @@
   "homepage": "https://github.com/zkladder/zkladder-sdk-ts#readme",
   "devDependencies": {
     "@types/jest": "^27.0.3",
+    "@types/node": "^18.7.16",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^8.3.0",

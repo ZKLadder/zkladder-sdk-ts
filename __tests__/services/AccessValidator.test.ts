@@ -18,6 +18,8 @@ jest.mock('../../src/interfaces/address', () => ({
   isEthereumAddress: jest.fn(),
 }));
 
+global.structuredClone = (val) => JSON.parse(JSON.stringify(val));
+
 const mockGetNetworkById = getNetworkById as jest.Mocked<any>;
 const mockProviders = providers as jest.Mocked<any>;
 const mockContract = Contract as jest.Mocked<any>;
@@ -126,11 +128,11 @@ describe('AccessValidator tests', () => {
     (AccessValidator as any).validateContractCondition = jest.fn(() => (true));
 
     const accessValidator = new AccessValidator([
-      { method: 'whitelist' },
+      { key: 'isWhitelisted' },
       { operator: 'and' },
-      { method: 'blacklist' },
+      { key: 'isBlacklisted' },
       { operator: 'and' },
-      { method: 'timelock' },
+      { key: 'timelock' },
       { operator: 'and' },
       { method: 'rpcCall' },
       { operator: 'and' },
@@ -143,9 +145,9 @@ describe('AccessValidator tests', () => {
 
     expect(result).toStrictEqual(true);
     expect(mockIsEthereumAddress).toHaveBeenCalledWith('0x123456789');
-    expect((AccessValidator as any).validateWhitelistCondition).toHaveBeenCalledWith('0x123456789', { method: 'whitelist' });
-    expect((AccessValidator as any).validateBlacklistCondition).toHaveBeenCalledWith('0x123456789', { method: 'blacklist' });
-    expect((AccessValidator as any).validateTimelock).toHaveBeenCalledWith('0x123456789', { method: 'timelock' });
+    expect((AccessValidator as any).validateWhitelistCondition).toHaveBeenCalledWith('0x123456789', { key: 'isWhitelisted' });
+    expect((AccessValidator as any).validateBlacklistCondition).toHaveBeenCalledWith('0x123456789', { key: 'isBlacklisted' });
+    expect((AccessValidator as any).validateTimelock).toHaveBeenCalledWith('0x123456789', { key: 'timelock' });
     expect((AccessValidator as any).validateRpcCondition).toHaveBeenCalledWith('0x123456789', { method: 'rpcCall' });
     expect((AccessValidator as any).validateContractCondition).toHaveBeenCalledWith('0x123456789', { functionName: 'functionCall' });
   });
@@ -159,11 +161,11 @@ describe('AccessValidator tests', () => {
     (AccessValidator as any).validateContractCondition = jest.fn(() => (true));
 
     const accessValidator = new AccessValidator([
-      { method: 'whitelist' },
+      { key: 'isWhitelisted' },
       { operator: 'or' },
-      { method: 'blacklist' },
+      { key: 'isBlacklisted' },
       { operator: 'or' },
-      { method: 'timelock' },
+      { key: 'timelock' },
       { operator: 'or' },
       { method: 'rpcCall' },
       { operator: 'or' },
@@ -176,9 +178,9 @@ describe('AccessValidator tests', () => {
 
     expect(result).toStrictEqual(true);
     expect(mockIsEthereumAddress).toHaveBeenCalledWith('0x123456789');
-    expect((AccessValidator as any).validateWhitelistCondition).toHaveBeenCalledWith('0x123456789', { method: 'whitelist' });
-    expect((AccessValidator as any).validateBlacklistCondition).toHaveBeenCalledWith('0x123456789', { method: 'blacklist' });
-    expect((AccessValidator as any).validateTimelock).toHaveBeenCalledWith('0x123456789', { method: 'timelock' });
+    expect((AccessValidator as any).validateWhitelistCondition).toHaveBeenCalledWith('0x123456789', { key: 'isWhitelisted' });
+    expect((AccessValidator as any).validateBlacklistCondition).toHaveBeenCalledWith('0x123456789', { key: 'isBlacklisted' });
+    expect((AccessValidator as any).validateTimelock).toHaveBeenCalledWith('0x123456789', { key: 'timelock' });
     expect((AccessValidator as any).validateRpcCondition).toHaveBeenCalledWith('0x123456789', { method: 'rpcCall' });
     expect((AccessValidator as any).validateContractCondition).toHaveBeenCalledWith('0x123456789', { functionName: 'functionCall' });
   });

@@ -17,6 +17,8 @@ jest.mock('ethers', () => ({
   },
 }));
 
+global.structuredClone = (val) => JSON.parse(JSON.stringify(val));
+
 const mockEthToWei = ethToWei as jest.Mocked<any>;
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseUnits = utils.parseUnits as jest.Mocked<any>;
@@ -132,6 +134,7 @@ describe('AccessSchemaBuilder class', () => {
   test('formatHasBalance correctly calls dependencies and returns result', () => {
     mockEthToWei.mockReturnValue({ toString: () => ('123456789') });
     expect(AccessSchemaBuilder.formatHasBalance(1, 123456789)).toStrictEqual({
+      key: 'hasBalance',
       contractAddress: '',
       chainId: 1,
       method: 'eth_getBalance',
@@ -151,6 +154,7 @@ describe('AccessSchemaBuilder class', () => {
     mockParseUnits.mockReturnValue({ toString: () => ('123456789') });
 
     expect(AccessSchemaBuilder.formatHasBalanceERC20(1, '0xerc20contract', 123456789, 12)).toStrictEqual({
+      key: 'hasBalanceERC20',
       contractAddress: '0xerc20contract',
       chainId: 1,
       functionName: 'balanceOf',
@@ -180,7 +184,6 @@ describe('AccessSchemaBuilder class', () => {
       },
     });
 
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xerc20contract');
     expect(mockParseUnits).toHaveBeenCalledWith('123456789', 12);
   });
 
@@ -188,6 +191,7 @@ describe('AccessSchemaBuilder class', () => {
     mockIsEthereumAddress.mockReturnValue(true);
 
     expect(AccessSchemaBuilder.formatHasERC721(1, '0xerc721contract')).toStrictEqual({
+      key: 'hasERC721',
       contractAddress: '0xerc721contract',
       chainId: 1,
       functionName: 'balanceOf',
@@ -216,14 +220,13 @@ describe('AccessSchemaBuilder class', () => {
         value: '1',
       },
     });
-
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xerc721contract');
   });
 
   test('formatHasERC1155 correctly calls dependencies and returns result', () => {
     mockIsEthereumAddress.mockReturnValue(true);
 
     expect(AccessSchemaBuilder.formatHasERC1155(1, '0xerc1155contract', 99)).toStrictEqual({
+      key: 'hasERC1155',
       contractAddress: '0xerc1155contract',
       chainId: 1,
       functionName: 'balanceOf',
@@ -257,17 +260,15 @@ describe('AccessSchemaBuilder class', () => {
         value: '1',
       },
     });
-
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xerc1155contract');
   });
 
   test('formatIsWhitelisted correctly calls dependencies and returns result', () => {
     mockIsEthereumAddress.mockReturnValue(true);
 
     expect(AccessSchemaBuilder.formatIsWhitelisted(1, '0xuserAddress')).toStrictEqual({
+      key: 'isWhitelisted',
       contractAddress: '',
       chainId: 1,
-      method: 'whitelist',
       parameters: [
         ':userAddress',
       ],
@@ -276,17 +277,15 @@ describe('AccessSchemaBuilder class', () => {
         value: '0xuserAddress',
       },
     });
-
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xuserAddress');
   });
 
   test('formatIsBlacklisted correctly calls dependencies and returns result', () => {
     mockIsEthereumAddress.mockReturnValue(true);
 
     expect(AccessSchemaBuilder.formatIsBlacklisted(1, '0xuserAddress')).toStrictEqual({
+      key: 'isBlacklisted',
       contractAddress: '',
       chainId: 1,
-      method: 'blacklist',
       parameters: [
         ':userAddress',
       ],
@@ -295,15 +294,13 @@ describe('AccessSchemaBuilder class', () => {
         value: '0xuserAddress',
       },
     });
-
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('0xuserAddress');
   });
 
   test('formatTimelock correctly calls dependencies and returns result', () => {
     expect(AccessSchemaBuilder.formatTimelock(1, 122397, '>=')).toStrictEqual({
+      key: 'timelock',
       contractAddress: '',
       chainId: 1,
-      method: 'timelock',
       parameters: [],
       returnValueTest: {
         comparator: '>=',
@@ -431,28 +428,67 @@ describe('AccessSchemaBuilder class', () => {
 
   test('updateAccessCondition correctly calls dependencies and returns result', () => {
     (AccessSchemaBuilder as any).validateAccessCondition = jest.fn().mockImplementation(() => (true));
+    (AccessSchemaBuilder as any).formatHasBalanceERC20 = jest.fn().mockImplementation(() => ({ key: 'hasBalanceERC20' }));
+    (AccessSchemaBuilder as any).formatHasERC721 = jest.fn().mockImplementation(() => ({ key: 'hasERC721' }));
+    (AccessSchemaBuilder as any).formatHarERC1155 = jest.fn().mockImplementation(() => ({ key: 'hasERC1155' }));
+    (AccessSchemaBuilder as any).formatIsWhitelisted = jest.fn().mockImplementation(() => ({ key: 'isWhitelisted' }));
+    (AccessSchemaBuilder as any).formatIsBlacklisted = jest.fn().mockImplementation(() => ({ key: 'isBlacklisted' }));
 
     const accessSchemaBuilder = new AccessSchemaBuilder([
       { key: 'hasBalance' },
       { key: 'and' },
-      { key: 'hasBalanceERC20' },
-      { key: 'or' },
-      { key: 'hasERC721' },
-      { key: 'and' },
-      { key: 'hasERC1155' },
     ]);
 
-    accessSchemaBuilder.updateAccessCondition({ key: 'newMockKey' }, 2);
+    accessSchemaBuilder.updateAccessCondition({ index: 1, operator: 'or' });
 
-    expect((AccessSchemaBuilder as any).validateAccessCondition).toHaveBeenCalledWith({ key: 'newMockKey' });
     expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
       { key: 'hasBalance' },
-      { key: 'and' },
-      { key: 'newMockKey' },
-      { key: 'or' },
+      { operator: 'or' },
+    ]);
+
+    accessSchemaBuilder.updateAccessCondition({
+      index: 0, key: 'hasBalanceERC20', contractAddress: 'test', decimals: 12, minBalance: 10, chainId: 1,
+    });
+
+    expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
+      { key: 'hasBalanceERC20' },
+      { operator: 'or' },
+    ]);
+
+    accessSchemaBuilder.updateAccessCondition({
+      index: 0, key: 'hasERC721', contractAddress: 'test', chainId: 1,
+    });
+
+    expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
       { key: 'hasERC721' },
-      { key: 'and' },
+      { operator: 'or' },
+    ]);
+
+    accessSchemaBuilder.updateAccessCondition({
+      index: 0, key: 'hasERC1155', contractAddress: 'test', tokenId: 1, chainId: 1,
+    });
+
+    expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
       { key: 'hasERC1155' },
+      { operator: 'or' },
+    ]);
+
+    accessSchemaBuilder.updateAccessCondition({
+      index: 0, key: 'isWhitelisted', whitelistedAddress: 'test', chainId: 1,
+    });
+
+    expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
+      { key: 'isWhitelisted' },
+      { operator: 'or' },
+    ]);
+
+    accessSchemaBuilder.updateAccessCondition({
+      index: 0, key: 'isBlacklisted', blacklistedAddress: 'test', chainId: 1,
+    });
+
+    expect(accessSchemaBuilder.getAccessSchema()).toStrictEqual([
+      { key: 'isBlacklisted' },
+      { operator: 'or' },
     ]);
   });
 
@@ -462,7 +498,7 @@ describe('AccessSchemaBuilder class', () => {
     const accessSchemaBuilder = new AccessSchemaBuilder();
 
     expect(() => {
-      accessSchemaBuilder.updateAccessCondition({ key: 'newMockKey' }, 2);
+      accessSchemaBuilder.updateAccessCondition({ index: 2, key: 'newMockKey' });
     }).toThrow(new Error('Invalid index'));
   });
 
