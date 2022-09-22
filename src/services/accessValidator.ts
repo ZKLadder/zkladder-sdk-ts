@@ -21,11 +21,11 @@ class AccessValidator extends AccessSchemaBuilder {
 
     this.accessSchema.forEach((accessCondition, i) => {
       if (i % 2 === 0) {
-        if (accessCondition.method === 'whitelist') {
+        if (accessCondition.key === 'isWhitelisted') {
           promises.push(AccessValidator.validateWhitelistCondition(address, accessCondition));
-        } else if (accessCondition.method === 'blacklist') {
+        } else if (accessCondition.key === 'isBlacklisted') {
           promises.push(AccessValidator.validateBlacklistCondition(address, accessCondition));
-        } else if (accessCondition.method === 'timelock') {
+        } else if (accessCondition.key === 'timelock') {
           promises.push(AccessValidator.validateTimelock(address, accessCondition));
         } else if (accessCondition.method) {
           promises.push(AccessValidator.validateRpcCondition(address, accessCondition));

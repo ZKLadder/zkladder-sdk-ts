@@ -102,6 +102,27 @@ const parseMinedTransactionData = (txData: any): MinedTransactionData => {
   };
 };
 
+const parseUnits = (value:number | string, decimals:number) => {
+  if (typeof value === 'string') return utils.parseUnits(value, decimals).toString();
+  return utils.parseUnits(value.toString(), decimals).toString();
+};
+
+const formatUnits = (value:BigNumber | string, decimals:number) => {
+  // string passed in
+  if (typeof value === 'string') {
+    return parseFloat(utils.formatUnits(
+      value,
+      decimals,
+    ));
+  }
+
+  // BigNumber passed in
+  return parseFloat(utils.formatUnits(
+    value.toString(),
+    decimals,
+  ));
+};
+
 export {
   hexToDecimal,
   parseTransactionData,
@@ -109,4 +130,6 @@ export {
   ethToWei,
   weiToEth,
   gweiToEth,
+  parseUnits,
+  formatUnits,
 };

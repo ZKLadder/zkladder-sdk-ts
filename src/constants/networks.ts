@@ -33,7 +33,7 @@ const networks = {
     name: 'Gnosis Chain',
     currency: 'xDai',
     chainId: 100,
-    RPCEndpoint: 'https://rpc.xdaichain.com',
+    RPCEndpoint: 'https://rpc.gnosischain.com',
   },
   5777: {
     name: 'Ganache',

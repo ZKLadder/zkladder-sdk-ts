@@ -6,6 +6,8 @@ import {
   weiToEth,
   gweiToEth,
   ethToWei,
+  parseUnits,
+  formatUnits,
 } from '../../../src/utils/contract/conversions';
 
 const testAddress = '0xFEf0C802A560bC64bCed0933b600635DAfa81c6F';
@@ -170,5 +172,31 @@ describe('ethToWei', () => {
     expect(ethToWei(1.5)).toStrictEqual(BigNumber.from(15).mul(pow17));
     expect(ethToWei(1)).toStrictEqual(BigNumber.from(1).mul(pow18));
     expect(ethToWei(0.5)).toStrictEqual(BigNumber.from(5).mul(pow17));
+  });
+});
+
+describe('parseUnits', () => {
+  test('parseUnits correctly converts values', () => {
+    expect(parseUnits(1.0, 10)).toStrictEqual('10000000000');
+    expect(parseUnits(2.5, 6)).toStrictEqual('2500000');
+    expect(parseUnits(0.5, 18)).toStrictEqual('500000000000000000');
+    expect(parseUnits(0.01, 2)).toStrictEqual('1');
+    expect(parseUnits(20.05, 9)).toStrictEqual('20050000000');
+    // strings
+    expect(parseUnits('1.0', 10)).toStrictEqual('10000000000');
+    expect(parseUnits('2.5', 6)).toStrictEqual('2500000');
+    expect(parseUnits('0.5', 18)).toStrictEqual('500000000000000000');
+    expect(parseUnits('0.01', 2)).toStrictEqual('1');
+    expect(parseUnits('20.05', 9)).toStrictEqual('20050000000');
+  });
+});
+
+describe('formatUnits', () => {
+  test('formatUnits correctly converts values', () => {
+    expect(formatUnits('10000000000', 10)).toStrictEqual(1);
+    expect(formatUnits('2500000', 6)).toStrictEqual(2.5);
+    expect(formatUnits('500000000000000000', 18)).toStrictEqual(0.5);
+    expect(formatUnits('1', 2)).toStrictEqual(0.01);
+    expect(formatUnits('20050000000', 9)).toStrictEqual(20.05);
   });
 });
