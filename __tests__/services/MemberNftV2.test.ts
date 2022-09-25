@@ -383,46 +383,96 @@ describe('MemberNftV1ReadOnly service tests', () => {
     });
   });
 
+  test('getTokenByIndex correctly calls dependencies and returns results', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'tokenByIndex').mockImplementationOnce(() => (Promise.resolve(555)));
+    jest.spyOn(memberNft, 'getToken').mockImplementationOnce(() => (Promise.resolve({
+      tokenId: 123,
+      tokenUri: 'https://mockNft.com',
+      owner: '0xtokenHolder' as EthereumAddress,
+      tierId: 3,
+      metadata: {
+        mock: 'metadata',
+      },
+    })));
+
+    const token = await memberNft.getTokenByIndex(123);
+
+    expect(memberNft.tokenByIndex).toHaveBeenCalledWith(123);
+    expect(memberNft.getToken).toHaveBeenCalledWith(555);
+
+    expect(token).toStrictEqual({
+      tokenId: 123,
+      tokenUri: 'https://mockNft.com',
+      owner: '0xtokenHolder',
+      tierId: 3,
+      metadata: {
+        mock: 'metadata',
+      },
+    });
+  });
+
   test('getAllTokens correctly calls dependencies and returns results', async () => {
     const memberNft = await MemberNftV2.setup(setupParams);
     jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
-    jest.spyOn(memberNft, 'getToken').mockImplementation(() => (Promise.resolve('token') as any));
+    jest.spyOn(memberNft, 'getTokenByIndex').mockImplementation(() => (Promise.resolve('token') as any));
 
     const result = await memberNft.getAllTokens();
 
     expect(memberNft.totalSupply).toHaveBeenCalledTimes(1);
-    expect(memberNft.getToken).toHaveBeenCalledWith(0);
-    expect(memberNft.getToken).toHaveBeenCalledWith(1);
-    expect(memberNft.getToken).toHaveBeenCalledWith(2);
-    expect(memberNft.getToken).toHaveBeenCalledWith(3);
-    expect(memberNft.getToken).toHaveBeenCalledWith(4);
+    expect(memberNft.getTokenByIndex).toHaveBeenCalledWith(0);
+    expect(memberNft.getTokenByIndex).toHaveBeenCalledWith(1);
+    expect(memberNft.getTokenByIndex).toHaveBeenCalledWith(2);
+    expect(memberNft.getTokenByIndex).toHaveBeenCalledWith(3);
+    expect(memberNft.getTokenByIndex).toHaveBeenCalledWith(4);
 
     expect(result).toStrictEqual(new Array(5).fill('token'));
   });
 
+  test('getTokenOfOwnerByIndex correctly calls dependencies and returns results', async () => {
+    const memberNft = await MemberNftV2.setup(setupParams);
+    jest.spyOn(memberNft, 'tokenOfOwnerByIndex').mockImplementationOnce(() => (Promise.resolve(555)));
+    jest.spyOn(memberNft, 'getToken').mockImplementationOnce(() => (Promise.resolve({
+      tokenId: 123,
+      tokenUri: 'https://mockNft.com',
+      owner: '0xtokenHolder' as EthereumAddress,
+      tierId: 3,
+      metadata: {
+        mock: 'metadata',
+      },
+    })));
+
+    const token = await memberNft.getTokenOfOwnerByIndex('0x12345', 123);
+
+    expect(memberNft.tokenOfOwnerByIndex).toHaveBeenCalledWith('0x12345', 123);
+    expect(memberNft.getToken).toHaveBeenCalledWith(555);
+
+    expect(token).toStrictEqual({
+      tokenId: 123,
+      tokenUri: 'https://mockNft.com',
+      owner: '0xtokenHolder',
+      tierId: 3,
+      metadata: {
+        mock: 'metadata',
+      },
+    });
+  });
+
   test('getAllTokensOwnedBy correctly calls dependencies and returns results', async () => {
     const memberNft = await MemberNftV2.setup(setupParams);
-    jest.spyOn(memberNft, 'getAllTokens').mockImplementationOnce(() => (Promise.resolve([
-      {
-        tokenId: 1, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
-      },
-      {
-        tokenId: 2, owner: '0xadmin' as EthereumAddress, tokenUri: '1', metadata: {},
-      },
-      {
-        tokenId: 3, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
-      },
-    ])));
+    jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(5)));
+    jest.spyOn(memberNft, 'getTokenOfOwnerByIndex').mockImplementation(() => (Promise.resolve('token') as any));
 
-    const result = await memberNft.getAllTokensOwnedBy('0xuser');
+    const result = await memberNft.getAllTokensOwnedBy('0xmockuser');
 
-    expect(memberNft.getAllTokens).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([{
-      tokenId: 1, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
-    },
-    {
-      tokenId: 3, owner: '0xuser' as EthereumAddress, tokenUri: '1', metadata: {},
-    }]);
+    expect(memberNft.balanceOf).toHaveBeenCalledWith('0xmockuser');
+    expect(memberNft.getTokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockuser', 0);
+    expect(memberNft.getTokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockuser', 1);
+    expect(memberNft.getTokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockuser', 2);
+    expect(memberNft.getTokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockuser', 3);
+    expect(memberNft.getTokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockuser', 4);
+
+    expect(result).toStrictEqual(new Array(5).fill('token'));
   });
 });
 
@@ -451,7 +501,6 @@ describe('MemberNftV1 service tests', () => {
     jest.spyOn(memberNft as any, 'getChainId').mockImplementationOnce(() => (Promise.resolve('1')));
     jest.spyOn(memberNft, 'name').mockImplementationOnce(() => (Promise.resolve('MOCKZKL')));
     jest.spyOn(memberNft, 'tierInfo').mockImplementationOnce(() => (null as any));
-    jest.spyOn(memberNft, 'balanceOf').mockImplementationOnce(() => (Promise.resolve(10)));
     jest.spyOn(memberNft as any, 'getPrimaryAccount').mockImplementationOnce(() => (Promise.resolve(['0x12345'])));
     jest.spyOn(memberNft, 'signTypedData' as any).mockImplementation(() => ('0xsignedData'));
     jest.spyOn(memberNft as any, 'onlyRole').mockImplementation(() => (true));
@@ -459,9 +508,9 @@ describe('MemberNftV1 service tests', () => {
 
     const result = await memberNft.signMintVoucher('0xuser123', 5, 2);
 
-    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 15, 2, '0xuser123');
+    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 5, 2, '0xuser123');
     expect(result).toStrictEqual({
-      balance: 15, minter: '0xuser123', tierId: 2, signature: '0xsignedData',
+      tokenId: 5, minter: '0xuser123', tierId: 2, signature: '0xsignedData',
     });
   });
 
@@ -568,11 +617,11 @@ describe('MemberNftV1 service tests', () => {
 
     mockMintToWithUri.mockResolvedValue({ mock: 'result' });
 
-    const mintTx = await memberNft.mintTo('0xuser', { tierId: 3, test: 'metadata' });
+    const mintTx = await memberNft.mintTo('0xuser', 222, { tierId: 3, test: 'metadata' });
 
     expect((memberNft as any).getTier).toHaveBeenCalledWith(3);
     expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
-    expect((memberNft as any).mintToWithUri).toHaveBeenCalledWith('0xuser', 3, 'ipfs://QMmockcid');
+    expect((memberNft as any).mintToWithUri).toHaveBeenCalledWith('0xuser', 3, 222, 'ipfs://QMmockcid');
     expect(mintTx).toStrictEqual({ mock: 'result' });
   });
 
@@ -583,7 +632,7 @@ describe('MemberNftV1 service tests', () => {
     jest.spyOn(memberNft, 'getTier').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
 
     const voucher = {
-      balance: 15, minter: '0xuser123', signature: '0xsignedData', tierId: 2,
+      tokenId: 15, minter: '0xuser123', signature: '0xsignedData', tierId: 2,
     };
     const mintTx = await memberNft.mint(voucher, { tierId: 2, test: 'metadata' });
 

@@ -2,7 +2,7 @@ export default (
   chainId:number,
   contractName:string,
   contractAddress:string,
-  balance:number,
+  tokenId:number,
   tierId:number,
   minter:string,
 ) => JSON.stringify({
@@ -13,13 +13,13 @@ export default (
     version: '1',
   },
   message: {
-    balance,
+    tokenId,
     tierId,
     minter,
   },
   types: {
     mintVoucher: [
-      { name: 'balance', type: 'uint256' },
+      { name: 'tokenId', type: 'uint256' },
       { name: 'tierId', type: 'uint32' },
       { name: 'minter', type: 'address' },
     ],

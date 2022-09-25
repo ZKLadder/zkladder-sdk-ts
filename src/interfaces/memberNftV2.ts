@@ -1,7 +1,7 @@
 import { Role, NftConstructorArgsFull, NftConstructorArgsReadOnly } from './memberNftV1';
 
 interface NftMintVoucher {
-  balance:number,
+  tokenId:number,
   tierId:number,
   minter:string,
   signature:string

@@ -123,6 +123,17 @@ class MemberNftV2ReadOnly extends ERC721MembershipV2ReadOnly {
   }
 
   /**
+   * Get NFT by index
+   * @param index 0 ... totalSupply()-1
+   * @returns NFT data
+   */
+  public async getTokenByIndex(index:number): Promise<NftTokenData> {
+    const tokenId = await this.tokenByIndex(index);
+    const tokenData = await this.getToken(tokenId);
+    return tokenData;
+  }
+
+  /**
    * Enumerate and return all minted NFT's
    * @remarks May experience performance issues when dealing with large sums of tokens
    * @returns Array of NFT data
@@ -131,10 +142,22 @@ class MemberNftV2ReadOnly extends ERC721MembershipV2ReadOnly {
     const total = await this.totalSupply();
     const promises = [];
     for (let tokenIndex = 0; tokenIndex < total; tokenIndex += 1) {
-      promises.push(this.getToken(tokenIndex));
+      promises.push(this.getTokenByIndex(tokenIndex));
     }
     const results = await Promise.all(promises);
     return results;
+  }
+
+  /**
+   * Get NFT by owner index
+   * @param address Owner for which to retrieve tokens
+   * @param index 0 ... balanceOf(address)-1
+   * @returns NFT data
+   */
+  public async getTokenOfOwnerByIndex(address:string, index:number): Promise<NftTokenData> {
+    const tokenId = await this.tokenOfOwnerByIndex(address, index);
+    const tokenData = await this.getToken(tokenId);
+    return tokenData;
   }
 
   /**
@@ -145,8 +168,13 @@ class MemberNftV2ReadOnly extends ERC721MembershipV2ReadOnly {
    */
   public async getAllTokensOwnedBy(owner:string): Promise<NftTokenData[]> {
     isEthereumAddress(owner);
-    const allTokens = await this.getAllTokens();
-    return allTokens.filter((token) => (token.owner.toLowerCase() === owner.toLowerCase()));
+    const balance = await this.balanceOf(owner);
+    const promises = [];
+    for (let tokenIndex = 0; tokenIndex < balance; tokenIndex += 1) {
+      promises.push(this.getTokenOfOwnerByIndex(owner, tokenIndex));
+    }
+    const results = await Promise.all(promises);
+    return results;
   }
 }
 
@@ -270,23 +298,22 @@ class MemberNftV2 {
   /**
    * Generates a new mint voucher
    * @param minter Ethereum account being given permission to mint
-   * @param quantity Quantity of tokens being whitelisted for mint
+   * @param tokenId Id of token to mint
    * @param roleId ID of the role the user is being whitelisted for
    * @remarks Caller of this function must be assigned MINTER_ROLE
    * @returns Signed mint voucher
    */
-  public async signMintVoucher(minter:string, quantity:number, tierId:number): Promise<NftMintVoucher> {
+  public async signMintVoucher(minter:string, tokenId:number, tierId:number): Promise<NftMintVoucher> {
     await this.onlyRole('MINTER_ROLE');
     await this.tierInfo(tierId);
 
     const name = await this.name();
     const chainId = await this.getChainId();
-    const balance = (await this.balanceOf(minter)) + quantity;
-    const voucher = formatNftVoucher(chainId, name, this.address, balance, tierId, minter);
+    const voucher = formatNftVoucher(chainId, name, this.address, tokenId, tierId, minter);
     const signature = await this.signTypedData(voucher);
 
     return {
-      minter, balance, tierId, signature,
+      minter, tokenId, tierId, signature,
     };
   }
 
@@ -378,13 +405,13 @@ class MemberNftV2 {
    * @remarks Caller of this function must be assigned MINTER_ROLE
    * @returns Unmined mint transaction
    */
-  public async mintTo(to:string, metadata:{ tierId:number, [key: string]: any }) {
+  public async mintTo(to:string, tokenId:number, metadata:{ tierId:number, [key: string]: any }) {
     const { name: tierName } = await this.getTier(metadata.tierId);
     const currentBalance = await this.totalSupply();
     const file = new Blob([JSON.stringify({ tierName, ...metadata })], { type: 'application/json' });
     const response = await this.ipfsModule.addFiles([{ file, fileName: `${currentBalance}.json` }]);
     const ipfsCid = `ipfs://${response[0].Hash}`;
-    const tx = await this.mintToWithUri(to, metadata.tierId, ipfsCid);
+    const tx = await this.mintToWithUri(to, metadata.tierId, tokenId, ipfsCid);
     return tx;
   }
 
