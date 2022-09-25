@@ -102,11 +102,11 @@ class ERC721MembershipV2 {
     return parseTransactionData(tx);
   }
 
-  public async mintToWithUri(to:string, tierId:number, tokenUri:string): Promise<TransactionData> {
+  public async mintToWithUri(to:string, tierId:number, tokenId:number, tokenUri:string): Promise<TransactionData> {
     isEthereumAddress(to);
     await this.onlyRole('MINTER_ROLE');
     await this.tierInfo(tierId);
-    const tx = await this.contractAbstraction.mintTo(to, tierId, tokenUri);
+    const tx = await this.contractAbstraction.mintTo(to, tierId, tokenId, tokenUri);
     return parseTransactionData(tx);
   }
 

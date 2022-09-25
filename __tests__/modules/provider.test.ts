@@ -33,7 +33,7 @@ const mockProvider = {
   provider: {},
 } as jest.Mocked<any>;
 
-describe('NftEnumerable class', () => {
+describe('Provider class', () => {
   const providerWrapper = new ProviderWrapper(
     mockProvider,
   );

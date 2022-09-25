@@ -5,11 +5,11 @@ describe('formatNftVoucher function', () => {
     const chainId = 123;
     const contractName = 'mockName';
     const contractAddress = '0xmockAddress';
-    const balance = 10;
+    const tokenId = 10;
     const tierId = 5;
     const minter = '0xuser';
 
-    expect(formatNftVoucher(chainId, contractName, contractAddress, balance, tierId, minter)).toStrictEqual(
+    expect(formatNftVoucher(chainId, contractName, contractAddress, tokenId, tierId, minter)).toStrictEqual(
       JSON.stringify({
         domain: {
           chainId,
@@ -18,13 +18,13 @@ describe('formatNftVoucher function', () => {
           version: '1',
         },
         message: {
-          balance,
+          tokenId,
           tierId,
           minter,
         },
         types: {
           mintVoucher: [
-            { name: 'balance', type: 'uint256' },
+            { name: 'tokenId', type: 'uint256' },
             { name: 'tierId', type: 'uint32' },
             { name: 'minter', type: 'address' },
           ],

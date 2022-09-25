@@ -100,6 +100,24 @@ describe('NftReadOnly class', () => {
     expect(result).toEqual('https://mockToken.com/3');
   });
 
+  test('tokenByIndex correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.tokenByIndex.mockResolvedValueOnce(111);
+
+    const result = await nftWrapper.tokenByIndex(3);
+
+    expect(ethersNftAbstraction.tokenByIndex).toHaveBeenCalledWith(3);
+    expect(result).toEqual(111);
+  });
+
+  test('tokenOfOwnerByIndex correctly calls dependencies and returns results', async () => {
+    ethersNftAbstraction.tokenOfOwnerByIndex.mockResolvedValueOnce(222);
+
+    const result = await nftWrapper.tokenOfOwnerByIndex('0xmockguy', 3);
+
+    expect(ethersNftAbstraction.tokenOfOwnerByIndex).toHaveBeenCalledWith('0xmockguy', 3);
+    expect(result).toEqual(222);
+  });
+
   test('supportsInterface correctly calls dependencies and returns results', async () => {
     ethersNftAbstraction.supportsInterface.mockResolvedValueOnce(true);
 

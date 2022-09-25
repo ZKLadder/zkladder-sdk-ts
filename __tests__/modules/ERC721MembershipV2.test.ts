@@ -205,13 +205,13 @@ describe('ERC721MembershipV2 class', () => {
     ethersNftLazyMintAbstraction.mintTo.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
 
-    const result = await nftWhitelisted.mintToWithUri('0x12345678', 5, 'tokenUri');
+    const result = await nftWhitelisted.mintToWithUri('0x12345678', 5, 0, 'tokenUri');
 
     expect((nftWhitelisted as any).onlyRole).toHaveBeenCalledWith('MINTER_ROLE');
     expect((nftWhitelisted as any).tierInfo).toHaveBeenCalledWith(5);
     expect(mockParseTransaction).toHaveBeenCalledWith({ notParsed: 'transaction' });
     expect(mockIsEthereumAddress).toHaveBeenCalledWith('0x12345678');
-    expect(ethersNftLazyMintAbstraction.mintTo).toHaveBeenCalledWith('0x12345678', 5, 'tokenUri');
+    expect(ethersNftLazyMintAbstraction.mintTo).toHaveBeenCalledWith('0x12345678', 5, 0, 'tokenUri');
     expect(result).toStrictEqual({ parsed: 'transaction' });
   });
 
