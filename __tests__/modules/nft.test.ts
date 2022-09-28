@@ -101,7 +101,7 @@ describe('NftReadOnly class', () => {
   });
 
   test('tokenByIndex correctly calls dependencies and returns results', async () => {
-    ethersNftAbstraction.tokenByIndex.mockResolvedValueOnce(111);
+    ethersNftAbstraction.tokenByIndex.mockResolvedValueOnce({ toNumber: () => 111 });
 
     const result = await nftWrapper.tokenByIndex(3);
 
@@ -110,7 +110,7 @@ describe('NftReadOnly class', () => {
   });
 
   test('tokenOfOwnerByIndex correctly calls dependencies and returns results', async () => {
-    ethersNftAbstraction.tokenOfOwnerByIndex.mockResolvedValueOnce(222);
+    ethersNftAbstraction.tokenOfOwnerByIndex.mockResolvedValueOnce({ toNumber: () => 222 });
 
     const result = await nftWrapper.tokenOfOwnerByIndex('0xmockguy', 3);
 
