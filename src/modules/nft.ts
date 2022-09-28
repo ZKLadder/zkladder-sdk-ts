@@ -46,12 +46,12 @@ class NftReadOnly {
 
   public async tokenByIndex(index:number): Promise<number> {
     const tokenId = await this.contractAbstraction.tokenByIndex(index);
-    return tokenId;
+    return tokenId.toNumber();
   }
 
   public async tokenOfOwnerByIndex(address:string, index:number): Promise<number> {
     const tokenId = await this.contractAbstraction.tokenOfOwnerByIndex(address, index);
-    return tokenId;
+    return tokenId.toNumber();
   }
 
   public async supportsInterface(interfaceId: string) : Promise<boolean> {
