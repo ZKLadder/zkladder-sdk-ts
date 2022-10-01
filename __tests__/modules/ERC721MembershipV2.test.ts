@@ -6,7 +6,6 @@ import ethersNftLazyMintAbstraction from '../mocks/ethersNftLazyMintAbstraction'
 import {
   parseTransactionData,
   weiToEth,
-  ethToWei,
 } from '../../src/utils/contract/conversions';
 
 jest.mock('../../src/utils/api/getContractABI', () => (jest.fn()));
@@ -35,7 +34,6 @@ const mockContract = Contract as jest.Mocked<any>;
 const mockIsEthereumAddress = isEthereumAddress as jest.Mocked<any>;
 const mockParseTransaction = parseTransactionData as jest.Mocked<any>;
 const mockWeiToEth = weiToEth as jest.Mocked<any>;
-const mockEthToWei = ethToWei as jest.Mocked<any>;
 
 class ERC721MembershipV2ReadOnlyWrapper extends ERC721MembershipV2ReadOnly {
   protected readonly contractAbstraction: Contract;
@@ -217,8 +215,8 @@ describe('ERC721MembershipV2 class', () => {
 
   test('mintWithUri correctly calls dependencies and returns results', async () => {
     jest.spyOn(ERC721MembershipV2.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    jest.spyOn(ERC721MembershipV2.prototype as any, 'tierInfo').mockImplementationOnce(() => ({ salePrice: 100000005 }));
-    mockEthToWei.mockReturnValue(105);
+    ethersNftLazyMintAbstraction.tierInfo.mockResolvedValueOnce({ salePrice: 100000005 });
+
     const nftWhitelisted = new ERC721MembershipV2Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
     ethersNftLazyMintAbstraction.mint.mockResolvedValueOnce({ notParsed: 'transaction' });
     mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
@@ -230,10 +228,9 @@ describe('ERC721MembershipV2 class', () => {
     const result = await nftWhitelisted.mintWithUri(voucher, 'tokenUri');
 
     expect(mockParseTransaction).toHaveBeenCalledWith({ notParsed: 'transaction' });
-    expect((nftWhitelisted as any).tierInfo).toHaveBeenCalledWith(123);
+    expect(ethersNftLazyMintAbstraction.tierInfo).toHaveBeenCalledWith(123);
     expect(mockIsEthereumAddress).toHaveBeenCalledWith('mockMinter');
-    expect(mockEthToWei).toHaveBeenCalledWith(100000005);
-    expect(ethersNftLazyMintAbstraction.mint).toHaveBeenCalledWith(voucher, 'tokenUri', { value: 105 });
+    expect(ethersNftLazyMintAbstraction.mint).toHaveBeenCalledWith(voucher, 'tokenUri', { value: 100000005 });
     expect(result).toStrictEqual({ parsed: 'transaction' });
   });
 });
