@@ -14,7 +14,7 @@ class AccessSchemaBuilder {
       accessSchema.forEach((accessCondition) => {
         AccessSchemaBuilder.validateAccessCondition(accessCondition);
       });
-      this.accessSchema = structuredClone([...accessSchema]);
+      this.accessSchema = JSON.parse(JSON.stringify([...accessSchema]));
     } else this.accessSchema = [];
   }
 
