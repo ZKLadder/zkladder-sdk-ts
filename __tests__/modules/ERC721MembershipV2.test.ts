@@ -212,25 +212,4 @@ describe('ERC721MembershipV2 class', () => {
     expect(ethersNftLazyMintAbstraction.mintTo).toHaveBeenCalledWith('0x12345678', 5, 0, 'tokenUri');
     expect(result).toStrictEqual({ parsed: 'transaction' });
   });
-
-  test('mintWithUri correctly calls dependencies and returns results', async () => {
-    jest.spyOn(ERC721MembershipV2.prototype as any, 'onlyRole').mockImplementationOnce(() => (null));
-    ethersNftLazyMintAbstraction.tierInfo.mockResolvedValueOnce({ salePrice: 100000005 });
-
-    const nftWhitelisted = new ERC721MembershipV2Wrapper('12345' as EthereumAddress, ethersNftLazyMintAbstraction as any);
-    ethersNftLazyMintAbstraction.mint.mockResolvedValueOnce({ notParsed: 'transaction' });
-    mockParseTransaction.mockReturnValueOnce({ parsed: 'transaction' });
-
-    const voucher = {
-      mint: 'voucher', minter: 'mockMinter', tierId: 123,
-    } as any;
-
-    const result = await nftWhitelisted.mintWithUri(voucher, 'tokenUri');
-
-    expect(mockParseTransaction).toHaveBeenCalledWith({ notParsed: 'transaction' });
-    expect(ethersNftLazyMintAbstraction.tierInfo).toHaveBeenCalledWith(123);
-    expect(mockIsEthereumAddress).toHaveBeenCalledWith('mockMinter');
-    expect(ethersNftLazyMintAbstraction.mint).toHaveBeenCalledWith(voucher, 'tokenUri', { value: 100000005 });
-    expect(result).toStrictEqual({ parsed: 'transaction' });
-  });
 });

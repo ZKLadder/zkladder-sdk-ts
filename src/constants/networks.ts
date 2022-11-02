@@ -41,6 +41,12 @@ const networks = {
     chainId: 5777,
     RPCEndpoint: 'http://localhost:7545',
   },
+  80001: {
+    name: 'Polygon Mumbai',
+    currency: 'Test-MATIC',
+    chainId: 80001,
+    RPCEndpoint: 'https://matic-mumbai.chainstacklabs.com',
+  },
   31337: {
     name: 'Hardhat',
     currency: 'HAT',

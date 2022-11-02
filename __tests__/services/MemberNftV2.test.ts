@@ -506,11 +506,11 @@ describe('MemberNftV1 service tests', () => {
     jest.spyOn(memberNft as any, 'onlyRole').mockImplementation(() => (true));
     mockNftVoucher.mockReturnValue({ mock: 'voucher' });
 
-    const result = await memberNft.signMintVoucher('0xuser123', 5, 2);
+    const result = await memberNft.signMintVoucher('0xuser123', 5, 2, 'https://mockuri');
 
-    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 5, 2, '0xuser123');
+    expect(mockNftVoucher).toHaveBeenCalledWith('1', 'MOCKZKL', '0x123456789', 5, 2, '0xuser123', 'https://mockuri');
     expect(result).toStrictEqual({
-      tokenId: 5, minter: '0xuser123', tierId: 2, signature: '0xsignedData',
+      tokenId: 5, minter: '0xuser123', tierId: 2, tokenUri: 'https://mockuri', signature: '0xsignedData',
     });
   });
 
@@ -627,18 +627,22 @@ describe('MemberNftV1 service tests', () => {
 
   test('mint function correctly calls dependencies and returns result', async () => {
     const memberNft = await MemberNftV2.setup(setupParams);
-    jest.spyOn(memberNft, 'totalSupply').mockImplementationOnce(() => (Promise.resolve(5)));
-    jest.spyOn(memberNft as any, 'mintWithUri').mockImplementationOnce(() => (Promise.resolve({ mock: 'result' })));
-    jest.spyOn(memberNft, 'getTier').mockImplementationOnce(() => (Promise.resolve({ name: 'a tier' } as any)));
+    (memberNft as any).contractAbstraction = ethersNftLazyMintAbstraction;
+
+    ethersNftLazyMintAbstraction.tierInfo.mockResolvedValueOnce({ salePrice: 100000005 });
+    ethersNftLazyMintAbstraction.mint.mockResolvedValueOnce({ notParsed: 'transaction' });
+    mockParseTransactionData.mockReturnValueOnce({ parsed: 'transaction' });
 
     const voucher = {
-      tokenId: 15, minter: '0xuser123', signature: '0xsignedData', tierId: 2,
-    };
-    const mintTx = await memberNft.mint(voucher, { tierId: 2, test: 'metadata' });
+      mint: 'voucher', minter: 'mockMinter', tierId: 123,
+    } as any;
 
-    expect((memberNft as any).getTier).toHaveBeenCalledWith(2);
-    expect((memberNft as any).totalSupply).toHaveBeenCalledTimes(1);
-    expect((memberNft as any).mintWithUri).toHaveBeenCalledWith(voucher, 'ipfs://QMmockcid');
-    expect(mintTx).toStrictEqual({ mock: 'result' });
+    const result = await memberNft.mint(voucher);
+
+    expect(mockParseTransactionData).toHaveBeenCalledWith({ notParsed: 'transaction' });
+    expect(ethersNftLazyMintAbstraction.tierInfo).toHaveBeenCalledWith(123);
+    expect(mockIsEthereumAddress).toHaveBeenCalledWith('mockMinter');
+    expect(ethersNftLazyMintAbstraction.mint).toHaveBeenCalledWith(voucher, { value: 100000005 });
+    expect(result).toStrictEqual({ parsed: 'transaction' });
   });
 });

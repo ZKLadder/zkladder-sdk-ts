@@ -1,7 +1,7 @@
 import { providers, Contract } from 'ethers';
 import { isEthereumAddress, EthereumAddress } from '../interfaces/address';
 import {
-  Role, NftMintVoucher, Tier, TierUpdate,
+  Role, Tier, TierUpdate,
 } from '../interfaces/memberNftV2';
 import { TransactionData } from '../interfaces/transaction';
 import { parseTransactionData, weiToEth } from '../utils/contract/conversions';
@@ -107,13 +107,6 @@ class ERC721MembershipV2 {
     await this.onlyRole('MINTER_ROLE');
     await this.tierInfo(tierId);
     const tx = await this.contractAbstraction.mintTo(to, tierId, tokenId, tokenUri);
-    return parseTransactionData(tx);
-  }
-
-  public async mintWithUri(voucher: NftMintVoucher, tokenUri: string): Promise<TransactionData> {
-    isEthereumAddress(voucher.minter);
-    const { salePrice } = await this.contractAbstraction.tierInfo(voucher.tierId);
-    const tx = await this.contractAbstraction.mint(voucher, tokenUri, { value: salePrice });
     return parseTransactionData(tx);
   }
 }
