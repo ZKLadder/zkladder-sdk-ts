@@ -4,6 +4,7 @@ interface NftMintVoucher {
   tokenId:number,
   tierId:number,
   minter:string,
+  tokenUri:string,
   signature:string
 }
 

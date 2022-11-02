@@ -303,17 +303,17 @@ class MemberNftV2 {
    * @remarks Caller of this function must be assigned MINTER_ROLE
    * @returns Signed mint voucher
    */
-  public async signMintVoucher(minter:string, tokenId:number, tierId:number): Promise<NftMintVoucher> {
+  public async signMintVoucher(minter:string, tokenId:number, tierId:number, tokenUri:string): Promise<NftMintVoucher> {
     await this.onlyRole('MINTER_ROLE');
     await this.tierInfo(tierId);
 
     const name = await this.name();
     const chainId = await this.getChainId();
-    const voucher = formatNftVoucher(chainId, name, this.address, tokenId, tierId, minter);
+    const voucher = formatNftVoucher(chainId, name, this.address, tokenId, tierId, minter, tokenUri);
     const signature = await this.signTypedData(voucher);
 
     return {
-      minter, tokenId, tierId, signature,
+      minter, tokenId, tierId, tokenUri, signature,
     };
   }
 
@@ -418,17 +418,13 @@ class MemberNftV2 {
   /**
    * Mint a new NFT and transfer it to minter (defined in voucher)
    * @param voucher Valid mint voucher signed by account with MINTER_ROLE
-   * @param metadata Arbitrary JSON to be stored as NFT metadata. Must include roleId field.
    * @returns Unmined mint transaction
    */
-  public async mint(voucher:NftMintVoucher, metadata:{ tierId:number, [key: string]: any }) {
-    const { name: tierName } = await this.getTier(metadata.tierId);
-    const currentBalance = await this.totalSupply();
-    const file = new Blob([JSON.stringify({ tierName, ...metadata })], { type: 'application/json' });
-    const response = await this.ipfsModule.addFiles([{ file, fileName: `${currentBalance}.json` }]);
-    const ipfsCid = `ipfs://${response[0].Hash}`;
-    const tx = await this.mintWithUri(voucher, ipfsCid);
-    return tx;
+  public async mint(voucher:NftMintVoucher) {
+    isEthereumAddress(voucher.minter);
+    const { salePrice } = await this.contractAbstraction.tierInfo(voucher.tierId);
+    const tx = await this.contractAbstraction.mint(voucher, { value: salePrice });
+    return parseTransactionData(tx);
   }
 }
 

@@ -5,6 +5,7 @@ export default (
   tokenId:number,
   tierId:number,
   minter:string,
+  tokenUri:string,
 ) => JSON.stringify({
   domain: {
     chainId,
@@ -16,12 +17,14 @@ export default (
     tokenId,
     tierId,
     minter,
+    tokenUri,
   },
   types: {
     mintVoucher: [
       { name: 'tokenId', type: 'uint256' },
       { name: 'tierId', type: 'uint32' },
       { name: 'minter', type: 'address' },
+      { name: 'tokenUri', type: 'string' },
     ],
     EIP712Domain: [
       { name: 'name', type: 'string' },

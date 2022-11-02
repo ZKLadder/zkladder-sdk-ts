@@ -8,8 +8,9 @@ describe('formatNftVoucher function', () => {
     const tokenId = 10;
     const tierId = 5;
     const minter = '0xuser';
+    const tokenUri = 'https://mockuri.com';
 
-    expect(formatNftVoucher(chainId, contractName, contractAddress, tokenId, tierId, minter)).toStrictEqual(
+    expect(formatNftVoucher(chainId, contractName, contractAddress, tokenId, tierId, minter, tokenUri)).toStrictEqual(
       JSON.stringify({
         domain: {
           chainId,
@@ -21,12 +22,14 @@ describe('formatNftVoucher function', () => {
           tokenId,
           tierId,
           minter,
+          tokenUri,
         },
         types: {
           mintVoucher: [
             { name: 'tokenId', type: 'uint256' },
             { name: 'tierId', type: 'uint32' },
             { name: 'minter', type: 'address' },
+            { name: 'tokenUri', type: 'string' },
           ],
           EIP712Domain: [
             { name: 'name', type: 'string' },
