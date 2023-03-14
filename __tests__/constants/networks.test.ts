@@ -2,11 +2,11 @@ import getNetworkById from '../../src/constants/networks';
 
 describe('getNetworkById tests', () => {
   test('getNetworkById returns the correct network when called', () => {
-    expect(getNetworkById(1)).toStrictEqual({
-      name: 'Ethereum',
-      currency: 'ETH',
-      chainId: 1,
-      RPCEndpoint: 'https://mainnet.infura.io/v3/2d33fc4d9a9b4140b8582c1ef3bd12e8',
+    expect(getNetworkById(31337)).toStrictEqual({
+      name: 'Hardhat',
+      currency: 'HAT',
+      chainId: 31337,
+      RPCEndpoint: 'http://localhost:8545',
     });
   });
 
