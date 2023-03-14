@@ -45,7 +45,7 @@ const networks = {
     name: 'Polygon Mumbai',
     currency: 'Test-MATIC',
     chainId: 80001,
-    RPCEndpoint: 'https://matic-mumbai.chainstacklabs.com',
+    RPCEndpoint: 'https://polygon-mumbai.infura.io/v3/28445607a2834ee1ab47ead0ef9e13f4',
   },
   31337: {
     name: 'Hardhat',
